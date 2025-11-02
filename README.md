@@ -8,11 +8,5 @@ This repo contains a minimal compiler → bytecode → VM pipeline and a REPL.
 
 Run example:
 ```bash
-python -m tests.test_basic
-```
-
-Or
-
-```bash
-python -m pytest -q
+python -m axon.repl
 ```

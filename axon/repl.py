@@ -1,5 +1,9 @@
 # axon/repl.py
-import readline
+try:
+    import readline  # for Linux/macOS
+except ImportError:
+    import pyreadline3 as readline  # Windows alternative (install below)
+
 from axon.parser import parse_text
 from axon.compiler import compile_program
 from axon.vm import VM
