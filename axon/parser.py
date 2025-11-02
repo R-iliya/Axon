@@ -21,7 +21,7 @@ class Parser:
         if cur.type == typ:
             self.pos += 1
             return cur
-        raise ParseError(f"Expected {typ} at line {cur.lineno} col {cur.col}, got {cur.type}({cur.value})")
+        raise ParseError(f"Expected {typ} at line {cur.line} col {cur.col}, got {cur.type}({cur.value})")
 
     def parse(self) -> Program:
         stmts = []
@@ -40,7 +40,7 @@ class Parser:
             expr = self.expression()
             self.eat("RPAREN")
             self.eat("SEMICOL")
-            return Print(expr, tok.lineno, tok.col)
+            return Print(expr, tok.line, tok.col)
 
         # assignment: IDENT = expr;
         if cur.type == "IDENT":
@@ -50,9 +50,9 @@ class Parser:
                 self.eat("EQ")
                 expr = self.expression()
                 self.eat("SEMICOL")
-                return Assign(name_tok.value, expr, name_tok.lineno, name_tok.col)
+                return Assign(name_tok.value, expr, name_tok.line, name_tok.col)
 
-        raise ParseError(f"Unknown statement at line {cur.lineno} col {cur.col}: {cur.type}({cur.value})")
+        raise ParseError(f"Unknown statement at line {cur.line} col {cur.col}: {cur.type}({cur.value})")
 
     # expression -> term ((+|-) term)*
     def expression(self):
@@ -60,7 +60,7 @@ class Parser:
         while self.current().type in ("PLUS", "MINUS"):
             op_tok = self.eat(self.current().type)
             right = self.term()
-            node = BinOp(node, op_tok.value, right, op_tok.lineno, op_tok.col)
+            node = BinOp(node, op_tok.value, right, op_tok.line, op_tok.col)
         return node
 
     # term -> factor ((*|/) factor)*
@@ -69,7 +69,7 @@ class Parser:
         while self.current().type in ("TIMES", "DIV"):
             op_tok = self.eat(self.current().type)
             right = self.factor()
-            node = BinOp(node, op_tok.value, right, op_tok.lineno, op_tok.col)
+            node = BinOp(node, op_tok.value, right, op_tok.line, op_tok.col)
         return node
 
     def factor(self):
@@ -77,16 +77,16 @@ class Parser:
         if cur.type == "NUMBER":
             tok = self.eat("NUMBER")
             val = float(tok.value) if "." in tok.value else int(tok.value)
-            return Number(val, tok.lineno, tok.col)
+            return Number(val, tok.line, tok.col)
         if cur.type == "IDENT":
             tok = self.eat("IDENT")
-            return Var(tok.value, tok.lineno, tok.col)
+            return Var(tok.value, tok.line, tok.col)
         if cur.type == "LPAREN":
             self.eat("LPAREN")
             node = self.expression()
             self.eat("RPAREN")
             return node
-        raise ParseError(f"Unexpected token at line {cur.lineno} col {cur.col}: {cur.type}({cur.value})")
+        raise ParseError(f"Unexpected token at line {cur.line} col {cur.col}: {cur.type}({cur.value})")
 
 def parse_text(text: str) -> Program:
     tokens = tokenize(text)
