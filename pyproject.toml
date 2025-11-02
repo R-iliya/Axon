@@ -1,0 +1,9 @@
+[project]
+name = "axon"
+version = "0.1.0"
+description = "Axon — minimal programming language prototype"
+authors = [ { name="You", email="you@example.com" } ]
+requires-python = ">=3.10"
+
+[tool.poetry.dependencies]
+python = ">=3.10"
