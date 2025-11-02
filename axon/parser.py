@@ -2,8 +2,9 @@
 
 from axon.lexer import tokenize
 from axon.nodes import (
-    NumberNode, StringNode, VariableNode, PrintNode, LetNode, BinOpNode,
-    FunctionNode, CallNode, ClearNode, IfNode, WhileNode, ForNode, ReturnNode
+    NumberNode, StringNode, VariableNode, PrintNode, LetNode,
+    BinOpNode, FunctionNode, CallNode, ClearNode, IfNode,
+    WhileNode, ForNode, ReturnNode
 )
 
 class ParseError(Exception):
@@ -22,9 +23,9 @@ class Parser:
     def advance(self):
         self.pos += 1
 
-    # -------------------
-    # Expression parsing
-    # -------------------
+    # -----------------------
+    # Expression Parsing
+    # -----------------------
     def parse_expression(self):
         left = self.parse_term()
         token = self.current_token()
@@ -60,13 +61,13 @@ class Parser:
             next_token = self.current_token()
             # function call
             if next_token and next_token.type == 'LPAREN':
-                self.advance()  # skip '('
+                self.advance()
                 args = []
                 while self.current_token().type != 'RPAREN':
                     args.append(self.parse_expression())
                     if self.current_token().type == 'COMMA':
                         self.advance()
-                self.advance()  # skip ')'
+                self.advance()
                 return CallNode(token.value, args)
             else:
                 return VariableNode(token.value)
@@ -74,144 +75,159 @@ class Parser:
             self.advance()
             expr = self.parse_expression()
             if self.current_token().type != 'RPAREN':
-                raise ParseError(f"Expected ')' at line {token.line}")
+                raise ParseError("Expected ')'")
             self.advance()
             return expr
         else:
             raise ParseError(f"Unexpected token {token}")
 
-    # -------------------
-    # Statement parsing
-    # -------------------
+    # -----------------------
+    # Statement Parsing
+    # -----------------------
     def parse_statement(self):
         token = self.current_token()
-        if token.type == 'IDENT':
-            if token.value == 'print':
-                self.advance()
-                if self.current_token().type != 'LPAREN':
-                    raise ParseError("Expected '(' after print")
-                self.advance()
-                expr = self.parse_expression()
-                if self.current_token().type != 'RPAREN':
-                    raise ParseError("Expected ')' after print expression")
-                self.advance()
-                if self.current_token().type != 'SEMICOLON':
-                    raise ParseError("Expected ';' after print statement")
-                self.advance()
-                return PrintNode(expr)
+        if token.type != 'IDENT':
+            raise ParseError(f"Expected statement, got {token}")
 
-            elif token.value == 'let':
-                self.advance()
-                var_name = self.current_token().value
-                self.advance()
-                if self.current_token().type != 'EQ':
-                    raise ParseError("Expected '=' in let statement")
-                self.advance()
-                expr = self.parse_expression()
-                if self.current_token().type != 'SEMICOLON':
-                    raise ParseError("Expected ';' after let statement")
-                self.advance()
-                return LetNode(var_name, expr)
+        # --- print ---
+        if token.value == 'print':
+            self.advance()
+            if self.current_token().type != 'LPAREN':
+                raise ParseError("Expected '(' after print")
+            self.advance()
+            expr = self.parse_expression()
+            if self.current_token().type != 'RPAREN':
+                raise ParseError("Expected ')' after print")
+            self.advance()
+            if self.current_token().type != 'SEMICOLON':
+                raise ParseError("Expected ';' after print")
+            self.advance()
+            return PrintNode(expr)
 
-            elif token.value == 'cls':
-                self.advance()
-                if self.current_token().type != 'SEMICOLON':
-                    raise ParseError("Expected ';' after cls")
-                self.advance()
-                return ClearNode()
+        # --- let ---
+        elif token.value == 'let':
+            self.advance()
+            var_name = self.current_token().value
+            self.advance()
+            if self.current_token().type != 'EQ':
+                raise ParseError("Expected '=' in let statement")
+            self.advance()
+            expr = self.parse_expression()
+            if self.current_token().type != 'SEMICOLON':
+                raise ParseError("Expected ';' after let")
+            self.advance()
+            return LetNode(var_name, expr)
 
-            elif token.value == 'fn':
+        # --- cls ---
+        elif token.value == 'cls':
+            self.advance()
+            if self.current_token().type != 'SEMICOLON':
+                raise ParseError("Expected ';' after cls")
+            self.advance()
+            return ClearNode()
+
+        # --- if / else ---
+        elif token.value == 'if':
+            self.advance()
+            if self.current_token().type != 'LPAREN':
+                raise ParseError("Expected '(' after if")
+            self.advance()
+            condition = self.parse_expression()
+            if self.current_token().type != 'RPAREN':
+                raise ParseError("Expected ')' after if condition")
+            self.advance()
+            if self.current_token().type != 'LBRACE':
+                raise ParseError("Expected '{' after if condition")
+            self.advance()
+            true_body = self.parse_block()
+            false_body = None
+            token = self.current_token()
+            if token and token.type == 'IDENT' and token.value == 'else':
                 self.advance()
-                fn_name = self.current_token().value
-                self.advance()
-                if self.current_token().type != 'LPAREN':
-                    raise ParseError("Expected '(' after function name")
-                self.advance()
-                params = []
-                while self.current_token().type != 'RPAREN':
-                    params.append(self.current_token().value)
-                    self.advance()
-                    if self.current_token().type == 'COMMA':
-                        self.advance()
-                self.advance()  # skip ')'
                 if self.current_token().type != 'LBRACE':
-                    raise ParseError("Expected '{' to start function body")
+                    raise ParseError("Expected '{' after else")
                 self.advance()
-                body = []
-                while self.current_token().type != 'RBRACE':
-                    body.append(self.parse_statement())
-                self.advance()  # skip '}'
-                return FunctionNode(fn_name, params, body)
+                false_body = self.parse_block()
+            return IfNode(condition, true_body, false_body)
 
-            elif token.value == 'return':
-                self.advance()
-                expr = self.parse_expression()
-                if self.current_token().type != 'SEMICOLON':
-                    raise ParseError("Expected ';' after return statement")
-                self.advance()
-                return ReturnNode(expr)
+        # --- while ---
+        elif token.value == 'while':
+            self.advance()
+            if self.current_token().type != 'LPAREN':
+                raise ParseError("Expected '(' after while")
+            self.advance()
+            condition = self.parse_expression()
+            if self.current_token().type != 'RPAREN':
+                raise ParseError("Expected ')' after while condition")
+            self.advance()
+            if self.current_token().type != 'LBRACE':
+                raise ParseError("Expected '{' after while condition")
+            self.advance()
+            body = self.parse_block()
+            return WhileNode(condition, body)
 
-            elif token.value == 'if':
+        # --- for ---
+        elif token.value == 'for':
+            self.advance()
+            var_name = self.current_token().value
+            self.advance()
+            if self.current_token().type != 'EQ':
+                raise ParseError("Expected '=' in for loop")
+            self.advance()
+            start_expr = self.parse_expression()
+            if self.current_token().type != 'SEMICOLON':
+                raise ParseError("Expected ';' after start expr")
+            self.advance()
+            end_expr = self.parse_expression()
+            if self.current_token().type != 'LBRACE':
+                raise ParseError("Expected '{' after for loop range")
+            self.advance()
+            body = self.parse_block()
+            return ForNode(var_name, start_expr, end_expr, body)
+
+        # --- function definition ---
+        elif token.value == 'fn':
+            self.advance()
+            name = self.current_token().value
+            self.advance()
+            if self.current_token().type != 'LPAREN':
+                raise ParseError("Expected '(' after function name")
+            self.advance()
+            params = []
+            while self.current_token().type != 'RPAREN':
+                params.append(self.current_token().value)
                 self.advance()
-                condition = self.parse_expression()
-                if self.current_token().type != 'LBRACE':
-                    raise ParseError("Expected '{' after if condition")
-                self.advance()
-                true_body = []
-                while self.current_token().type != 'RBRACE':
-                    true_body.append(self.parse_statement())
-                self.advance()  # skip '}'
-                false_body = None
-                next_token = self.current_token()
-                if next_token and next_token.type == 'IDENT' and next_token.value == 'else':
+                if self.current_token().type == 'COMMA':
                     self.advance()
-                    if self.current_token().type != 'LBRACE':
-                        raise ParseError("Expected '{' after else")
-                    self.advance()
-                    false_body = []
-                    while self.current_token().type != 'RBRACE':
-                        false_body.append(self.parse_statement())
-                    self.advance()
-                return IfNode(condition, true_body, false_body)
+            self.advance()
+            if self.current_token().type != 'LBRACE':
+                raise ParseError("Expected '{' after function parameters")
+            self.advance()
+            body = self.parse_block()
+            return FunctionNode(name, params, body)
 
-            elif token.value == 'while':
-                self.advance()
-                condition = self.parse_expression()
-                if self.current_token().type != 'LBRACE':
-                    raise ParseError("Expected '{' after while condition")
-                self.advance()
-                body = []
-                while self.current_token().type != 'RBRACE':
-                    body.append(self.parse_statement())
-                self.advance()
-                return WhileNode(condition, body)
+        # --- return ---
+        elif token.value == 'return':
+            self.advance()
+            expr = self.parse_expression()
+            if self.current_token().type != 'SEMICOLON':
+                raise ParseError("Expected ';' after return")
+            self.advance()
+            return ReturnNode(expr)
 
-            elif token.value == 'for':
-                self.advance()
-                var_name = self.current_token().value
-                self.advance()
-                if self.current_token().type != 'EQ':
-                    raise ParseError("Expected '=' after for variable")
-                self.advance()
-                start_expr = self.parse_expression()
-                if self.current_token().type != 'TO':
-                    raise ParseError("Expected 'to' in for loop")
-                self.advance()
-                end_expr = self.parse_expression()
-                if self.current_token().type != 'LBRACE':
-                    raise ParseError("Expected '{' after for loop")
-                self.advance()
-                body = []
-                while self.current_token().type != 'RBRACE':
-                    body.append(self.parse_statement())
-                self.advance()
-                return ForNode(var_name, start_expr, end_expr, body)
+        else:
+            raise ParseError(f"Unknown statement: {token}")
 
-        raise ParseError(f"Unknown statement: {token}")
+    def parse_block(self):
+        stmts = []
+        while self.current_token().type != 'RBRACE':
+            stmts.append(self.parse_statement())
+        self.advance()  # skip RBRACE
+        return stmts
 
-    # -------------------
+    # -----------------------
     # Parse all statements
-    # -------------------
+    # -----------------------
     def parse(self):
         stmts = []
         while self.current_token() is not None:
