@@ -13,6 +13,7 @@ import sys
 PROMPT = "axon> "
 
 context = {}
+stmt.eval(context)
 
 def repl():
     vm = VM()

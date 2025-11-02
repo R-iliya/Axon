@@ -1,5 +1,6 @@
 from axon.lexer import tokenize, Token
-from axon.nodes import NumberNode, StringNode, VariableNode, PrintNode
+from axon.nodes import NumberNode, StringNode, VariableNode, PrintNode, LetNode
+
 
 class ParseError(Exception):
     pass

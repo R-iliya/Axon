@@ -1,6 +1,6 @@
 // examples/hello.ax
 // Simple demo for Axon
-x = 10;
-y = 3 * (2 + x);
-print(y);
-print(1 + 2 * 3);
+let x = 10;
+let y = 20;
+print(x + y);
+print("Hello, world");
