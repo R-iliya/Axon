@@ -4,13 +4,15 @@ try:
 except ImportError:
     import pyreadline3 as readline  # Windows alternative (install below)
 
-from axon.parser import parse_text
+from axon.parser import Parser
 from axon.compiler import compile_program
 from axon.vm import VM
 from axon import sema
 import sys
 
 PROMPT = "axon> "
+
+context = {}
 
 def repl():
     vm = VM()
@@ -19,17 +21,15 @@ def repl():
     try:
         while True:
             try:
-                line = input(PROMPT)
+                code = input("axon> ")
+                parser = Parser(code)
+                statements = parser.parse()
+                for stmt in statements:
+                    stmt.eval(context)
             except EOFError:
-                print()
                 break
-            buffer += line + "\n"
-            if ";" not in line:
-                continue
-            try:
-                prog = parse_text(buffer)
             except Exception as e:
-                print("[!!] Parse error:", e)
+                print(f"[!!] Parse error: {e}")
                 buffer = ""
                 continue
             try:
