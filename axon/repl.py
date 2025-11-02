@@ -29,7 +29,7 @@ def repl():
             try:
                 prog = parse_text(buffer)
             except Exception as e:
-                print("Parse error:", e)
+                print("[!!] Parse error:", e)
                 buffer = ""
                 continue
             try:
@@ -38,7 +38,7 @@ def repl():
                 vm.push_frame(co)
                 vm.run()
             except Exception as e:
-                print("Runtime error:", e)
+                print("[!!] Runtime error:", e)
             buffer = ""
     except KeyboardInterrupt:
         print("\nInterrupted.")

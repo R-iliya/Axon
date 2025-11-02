@@ -3,60 +3,53 @@ import re
 from dataclasses import dataclass
 from typing import List, Iterator, Tuple, Optional
 
-TOKEN_SPEC: List[Tuple[str, str]] = [
-    ("NUMBER", r"\d+(\.\d+)?"),
-    ("IDENT", r"[A-Za-z_][A-Za-z0-9_]*"),
-    ("LPAREN", r"\("),
-    ("RPAREN", r"\)"),
-    ("PLUS", r"\+"),
-    ("MINUS", r"-"),
-    ("TIMES", r"\*"),
-    ("DIV", r"/"),
-    ("EQ", r"="),
-    ("SEMICOL", r";"),
-    ("SKIP", r"[ \t]+"),
-    ("NEWLINE", r"\n"),
-    ("COMMENT", r"//[^\n]*"),
+TOKEN_SPEC = [
+    ('NUMBER',   r'\d+(\.\d*)?'),
+    ('STRING',   r'"([^"\\]|\\.)*"'),
+    ('IDENT',    r'[A-Za-z_][A-Za-z0-9_]*'),
+    ('LPAREN',   r'\('),
+    ('RPAREN',   r'\)'),
+    ('LBRACE',   r'\{'),
+    ('RBRACE',   r'\}'),
+    ('SEMICOLON',r';'),
+    ('COMMA',    r','),
+    ('EQ',       r'='),
+    ('OP',       r'[+\-*/]'),
+    ('SKIP',     r'[ \t]+'),
+    ('NEWLINE',  r'\n'),
+    ('MISMATCH', r'.'),
 ]
 
-MASTER_RE = re.compile("|".join(f"(?P<{name}>{pat})" for name, pat in TOKEN_SPEC))
+TOKEN_RE = re.compile('|'.join(f'(?P<{name}>{pattern})' for name, pattern in TOKEN_SPEC))
 
-
-@dataclass
 class Token:
-    type: str
-    value: str
-    pos: int
-    lineno: int
-    col: int
-
+    def __init__(self, type_, value, line, col):
+        self.type = type_
+        self.value = value
+        self.line = line
+        self.col = col
     def __repr__(self):
-        return f"Token({self.type}, {self.value!r}, line={self.lineno}, col={self.col})"
+        return f'Token({self.type}, {self.value})'
 
-
-def tokenize(text: str) -> List[Token]:
-    tokens: List[Token] = []
-    lineno = 1
+def tokenize(code):
+    line_num = 1
     line_start = 0
-    for m in MASTER_RE.finditer(text):
-        typ = m.lastgroup
-        val = m.group(typ)
-        pos = m.start()
-        col = pos - line_start + 1
-        if typ == "NEWLINE":
-            lineno += 1
-            line_start = m.end()
+    tokens = []
+    for mo in TOKEN_RE.finditer(code):
+        kind = mo.lastgroup
+        value = mo.group()
+        col = mo.start() - line_start + 1
+        if kind == 'NUMBER':
+            value = float(value) if '.' in value else int(value)
+        elif kind == 'STRING':
+            value = bytes(value[1:-1], "utf-8").decode("unicode_escape")
+        elif kind == 'NEWLINE':
+            line_num += 1
+            line_start = mo.end()
             continue
-        if typ == "SKIP" or typ == "COMMENT":
+        elif kind == 'SKIP':
             continue
-        tokens.append(Token(typ, val, pos, lineno, col))
-    tokens.append(Token("EOF", "", len(text), lineno, 1))
+        elif kind == 'MISMATCH':
+            raise SyntaxError(f'Unexpected {value!r} at line {line_num}')
+        tokens.append(Token(kind, value, line_num, col))
     return tokens
-
-
-if __name__ == "__main__":
-    import sys
-
-    s = open(sys.argv[1]).read() if len(sys.argv) > 1 else "print(1+2*3);"
-    for t in tokenize(s):
-        print(t)
