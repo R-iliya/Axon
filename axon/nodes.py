@@ -113,3 +113,86 @@ class IfNode:
                 stmt.eval(context)
         elif self.false_body:
             for stmt in self.false_body:
+                stmt.eval(context)
+
+class WhileNode:
+    def __init__(self, condition, body):
+        self.condition = condition
+        self.body = body
+    def eval(self, context):
+        while self.condition.eval(context):
+            for stmt in self.body:
+                try:
+                    stmt.eval(context)
+                except BreakException:
+                    break
+                except ContinueException:
+                    continue
+
+class ForNode:
+    def __init__(self, var_name, start_expr, end_expr, body):
+        self.var_name = var_name
+        self.start_expr = start_expr
+        self.end_expr = end_expr
+        self.body = body
+    def eval(self, context):
+        start = self.start_expr.eval(context)
+        end = self.end_expr.eval(context)
+        for i in range(start, end):
+            context[self.var_name] = i
+            for stmt in self.body:
+                try:
+                    stmt.eval(context)
+                except BreakException:
+                    break
+                except ContinueException:
+                    continue
+
+class BreakNode:
+    def eval(self, context):
+        raise BreakException()
+
+class ContinueNode:
+    def eval(self, context):
+        raise ContinueException()
+
+class BreakException(Exception): pass
+class ContinueException(Exception): pass
+
+# -----------------------------
+# Functions
+# -----------------------------
+class FunctionNode:
+    def __init__(self, name, params, body):
+        self.name = name
+        self.params = params
+        self.body = body
+    def eval(self, context):
+        context[self.name] = self
+
+class CallNode:
+    def __init__(self, name, args):
+        self.name = name
+        self.args = args
+    def eval(self, context):
+        func = context.get(self.name)
+        if not isinstance(func, FunctionNode):
+            # built-ins
+            if self.name == 'len':
+                return len(self.args[0].eval(context))
+            if self.name == 'type':
+                return type(self.args[0].eval(context)).__name__
+            raise ValueError(f"{self.name} is not a function")
+        local_ctx = context.copy()
+        for p, a in zip(func.params, self.args):
+            local_ctx[p] = a.eval(context)
+        result = None
+        for stmt in func.body:
+            result = stmt.eval(local_ctx)
+        return result
+
+class ReturnNode:
+    def __init__(self, expr):
+        self.expr = expr
+    def eval(self, context):
+        return self.expr.eval(context)
