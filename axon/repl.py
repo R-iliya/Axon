@@ -8,7 +8,7 @@ from axon.compiler import compile_program  # optional for later VM
 from axon.vm import VM                       # optional for later VM
 from axon import sema                        # optional for later VM
 
-PROMPT = "axon> "
+PROMPT = ">> "
 
 def repl():
     print("Axon REPL — enter statements ending with ';'. Ctrl-D to exit.")
