@@ -12,12 +12,11 @@ import sys
 
 PROMPT = "axon> "
 
-context = {}
-stmt.eval(context)
-
 def repl():
     vm = VM()
     buffer = ""
+    context = {}
+    stmt.eval(context)
     print("Axon REPL — enter statements ending with ';'. Ctrl-D to exit.")
     try:
         while True:
