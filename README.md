@@ -10,3 +10,13 @@ Run example:
 ```bash
 python -m axon.repl
 ```
+
+Some Example lines:
+```Axon
+axon> print("Hello, Axon");
+Hello, Axon
+
+axon> let x = 5;
+axon> print(x);
+5
+```
