@@ -182,16 +182,22 @@ class Parser:
             return PrintNode(expr)
 
         elif token.value == 'let':
-            self.advance()
+            self.advance()  # skip 'let'
+            if not self.current_token() or self.current_token().type != 'IDENT':
+                raise ParseError("Expected variable name after let")
             var_name = self.current_token().value
-            self.advance()
-            if self.current_token().type != 'EQ':
+            self.advance()  # skip variable name
+
+            if not self.current_token() or self.current_token().type != 'EQ':
                 raise ParseError("Expected '=' in let statement")
-            self.advance()
+            self.advance()  # skip '='
+
             expr = self.parse_expression(stop_tokens=['SEMICOLON'])
-            if self.current_token().type != 'SEMICOLON':
+
+            if not self.current_token() or self.current_token().type != 'SEMICOLON':
                 raise ParseError("Expected ';' after let")
-            self.advance()
+            self.advance()  # skip semicolon
+
             return LetNode(var_name, expr)
 
         elif token.value == 'cls':
