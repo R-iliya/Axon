@@ -315,6 +315,15 @@ class Parser:
                     raise ParseError("Expected ';' after assignment")
                 self.advance()
                 return LetNode(var_name, expr)
+            
+    def parse(self):
+        """
+        Parse the full program and return a list of statement nodes.
+        """
+        stmts = []
+        while self.current_token():
+            stmts.append(self.parse_statement())
+        return stmts
            
 # at the bottom of axon/parser.py
 def parse_text(code):
