@@ -16,7 +16,7 @@ def capture_run(path):
 
 def test_hello_example(tmp_path):
     p = tmp_path / "ex.ax"
-    p.write_text("""x = 2; y = x * 5; print(y); print(3+4*2);""")
+    p.write_text("""let x = 2; let y = x * 5; print(y); print(3+4*2);""")
     out = capture_run(str(p))
     # expected: y = 10 and 11 from the second print
     assert "10" in out
