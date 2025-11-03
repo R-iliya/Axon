@@ -39,9 +39,20 @@ class Parser:
         return left
 
     def parse_logic_term(self):
-        left = self.parse_term()
+        left = self.parse_comparison()
         token = self.current_token()
         while token and token.type == 'OP' and token.value in ('and',):
+            op = token.value
+            self.advance()
+            right = self.parse_comparison()
+            left = BinOpNode(left, op, right)
+            token = self.current_token()
+        return left
+
+    def parse_comparison(self):
+        left = self.parse_term()
+        token = self.current_token()
+        while token and token.type == 'OP' and token.value in ('==', '!=', '<', '>', '<=', '>='):
             op = token.value
             self.advance()
             right = self.parse_term()
@@ -52,7 +63,7 @@ class Parser:
     def parse_term(self):
         left = self.parse_factor()
         token = self.current_token()
-        while token and token.type == 'OP' and token.value in ('+', '-', '==', '!=', '<', '>', '<=', '>='):
+        while token and token.type == 'OP' and token.value in ('+', '-'):
             op = token.value
             self.advance()
             right = self.parse_factor()
@@ -110,7 +121,7 @@ class Parser:
             self.advance()
             expr = self.parse_expression()
             if self.current_token().type != 'RPAREN':
-                raise ParseError("Expected ')'")
+                raise ParseError("Expected ')' after expression")
             self.advance()
             return expr
 
@@ -198,14 +209,100 @@ class Parser:
             self.advance()
             return ContinueNode()
 
-        # existing if / while / for / fn / return logic stays the same
-        # ...
-        # for brevity, assume previous code for IfNode, WhileNode, ForNode, FunctionNode, ReturnNode parsing is included here
-        # ...
+        # --- if statement ---
+        elif token.value == 'if':
+            self.advance()
+            condition = self.parse_expression()
+            if self.current_token().type != 'LBRACE':
+                raise ParseError("Expected '{' after if condition")
+            self.advance()
+            true_body = self.parse_block()
+            false_body = None
+            if self.current_token() and self.current_token().type == 'IDENT' and self.current_token().value == 'else':
+                self.advance()
+                if self.current_token().type != 'LBRACE':
+                    raise ParseError("Expected '{' after else")
+                self.advance()
+                false_body = self.parse_block()
+            return IfNode(condition, true_body, false_body)
+
+        # --- while loop ---
+        elif token.value == 'while':
+            self.advance()
+            condition = self.parse_expression()
+            if self.current_token().type != 'LBRACE':
+                raise ParseError("Expected '{' after while condition")
+            self.advance()
+            body = self.parse_block()
+            return WhileNode(condition, body)
+
+        # --- for loop ---
+        elif token.value == 'for':
+            self.advance()
+            var_name = self.current_token().value
+            self.advance()
+            if self.current_token().type != 'EQ':
+                raise ParseError("Expected '=' after for loop variable")
+            self.advance()
+            start_expr = self.parse_expression()
+            if self.current_token().type != 'OP' or self.current_token().value != 'to':
+                raise ParseError("Expected 'to' in for loop")
+            self.advance()
+            end_expr = self.parse_expression()
+            if self.current_token().type != 'LBRACE':
+                raise ParseError("Expected '{' after for loop")
+            self.advance()
+            body = self.parse_block()
+            return ForNode(var_name, start_expr, end_expr, body)
+
+        # --- function definition ---
+        elif token.value == 'fn':
+            self.advance()
+            func_name = self.current_token().value
+            self.advance()
+            if self.current_token().type != 'LPAREN':
+                raise ParseError("Expected '(' after function name")
+            self.advance()
+            params = []
+            while self.current_token().type != 'RPAREN':
+                params.append(self.current_token().value)
+                self.advance()
+                if self.current_token().type == 'COMMA':
+                    self.advance()
+            self.advance()  # skip ')'
+            if self.current_token().type != 'LBRACE':
+                raise ParseError("Expected '{' for function body")
+            self.advance()
+            body = self.parse_block()
+            return FunctionNode(func_name, params, body)
+
+        # --- return statement ---
+        elif token.value == 'return':
+            self.advance()
+            expr = self.parse_expression()
+            if self.current_token().type != 'SEMICOLON':
+                raise ParseError("Expected ';' after return")
+            self.advance()
+            return ReturnNode(expr)
+
+        # --- bare assignment x = 5; ---
+        elif self.current_token().type == 'IDENT':
+            var_name = self.current_token().value
+            self.advance()
+            if self.current_token().type == 'EQ':
+                self.advance()
+                expr = self.parse_expression()
+                if self.current_token().type != 'SEMICOLON':
+                    raise ParseError("Expected ';' after assignment")
+                self.advance()
+                return LetNode(var_name, expr)
 
         else:
             raise ParseError(f"Unknown statement: {token}")
 
+    # -----------------------
+    # Block Parsing
+    # -----------------------
     def parse_block(self):
         stmts = []
         while self.current_token().type != 'RBRACE':
@@ -213,6 +310,9 @@ class Parser:
         self.advance()  # skip RBRACE
         return stmts
 
+    # -----------------------
+    # Entry point
+    # -----------------------
     def parse(self):
         stmts = []
         while self.current_token() is not None:
