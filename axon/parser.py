@@ -190,8 +190,9 @@ class Parser:
             if self.current_token() and self.current_token().type == 'EQ':
                 self.advance()
                 expr = self.parse_expression()
-                if self.current_token().type != 'SEMICOLON':
-                    raise ParseError("Expected ';' after assignment")
+                tok = self.current_token()
+                if tok is None or tok.type != 'SEMICOLON':
+                    raise ParseError(f"Expected ';' after assignment, got {tok}")
                 self.advance()
                 return LetNode(var_name, expr)
             else:
