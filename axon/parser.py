@@ -28,15 +28,13 @@ class Parser:
     # Expression Parsing
     # -----------------------
     def parse_expression(self):
-        left = self.parse_logic_term()
-        token = self.current_token()
-        while token and token.type == 'OP' and token.value in ('or',):
-            op = token.value
+        node = self.parse_term()
+        while self.current_token() and self.current_token().type in ('PLUS', 'MINUS'):
+            op = self.current_token().type
             self.advance()
-            right = self.parse_logic_term()
-            left = BinOpNode(left, op, right)
-            token = self.current_token()
-        return left
+            right = self.parse_term()
+            node = BinOpNode(left=node, op=op, right=right)
+        return node
 
     def parse_logic_term(self):
         left = self.parse_term()
@@ -50,15 +48,13 @@ class Parser:
         return left
 
     def parse_term(self):
-        left = self.parse_factor()
-        token = self.current_token()
-        while token and token.type == 'OP' and token.value in ('+', '-', '==', '!=', '<', '>', '<=', '>='):
-            op = token.value
+        node = self.parse_factor()
+        while self.current_token() and self.current_token().type in ('STAR', 'SLASH'):
+            op = self.current_token().type
             self.advance()
             right = self.parse_factor()
-            left = BinOpNode(left, op, right)
-            token = self.current_token()
-        return left
+            node = BinOpNode(left=node, op=op, right=right)
+        return node
 
     def parse_factor(self):
         token = self.current_token()
