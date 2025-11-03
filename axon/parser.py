@@ -286,19 +286,19 @@ class Parser:
             return ReturnNode(expr)
 
         # --- bare assignment x = 5; ---
-        elif self.current_token().type == 'IDENT':
-            var_name = self.current_token().value
-            self.advance()
-            if self.current_token().type == 'EQ':
-                self.advance()
+        elif token.type == 'IDENT':
+            next_token = self.tokens[self.pos + 1] if self.pos + 1 < len(self.tokens) else None
+            if next_token and next_token.type == 'EQ':
+                var_name = token.value
+                self.advance()  # identifier
+                self.advance()  # '='
                 expr = self.parse_expression()
                 if self.current_token().type != 'SEMICOLON':
                     raise ParseError("Expected ';' after assignment")
                 self.advance()
                 return LetNode(var_name, expr)
-
-        else:
-            raise ParseError(f"Unknown statement: {token}")
+            else:
+                raise ParseError(f"Unknown statement starting with {token.value}")
 
     # -----------------------
     # Block Parsing
