@@ -29,61 +29,60 @@ class Parser:
     # -----------------------
     def parse_expression(self, stop_tokens=None):
         stop_tokens = stop_tokens or []
-        left = self.parse_logic_term()
+        left = self.parse_logic_term(stop_tokens)
         token = self.current_token()
-        while token:
-            if token.type in stop_tokens:
-                break
+        while token and token.type not in stop_tokens:
             if token.type == 'OP' and token.value in ('or',):
                 op = token.value
                 self.advance()
-                right = self.parse_logic_term()
+                right = self.parse_logic_term(stop_tokens)
                 left = BinOpNode(left, op, right)
                 token = self.current_token()
             else:
                 break
         return left
 
-    def parse_logic_term(self):
-        left = self.parse_comparison()
+    def parse_logic_term(self, stop_tokens=None):
+        stop_tokens = stop_tokens or []
+        left = self.parse_comparison(stop_tokens)
         token = self.current_token()
-        while token and token.type == 'OP' and token.value in ('and',):
+        while token and token.type not in stop_tokens and token.type == 'OP' and token.value == 'and':
             op = token.value
             self.advance()
-            right = self.parse_comparison()
+            right = self.parse_comparison(stop_tokens)
             left = BinOpNode(left, op, right)
             token = self.current_token()
         return left
 
-    def parse_comparison(self):
-        left = self.parse_term()
+    def parse_comparison(self, stop_tokens=None):
+        stop_tokens = stop_tokens or []
+        left = self.parse_term(stop_tokens)
         token = self.current_token()
-        while token and token.type == 'OP' and token.value in ('==', '!=', '<', '>', '<=', '>='):
+        while token and token.type not in stop_tokens and token.type == 'OP' and token.value in ('==', '!=', '<', '>', '<=', '>='):
             op = token.value
             self.advance()
-            right = self.parse_term()
+            right = self.parse_term(stop_tokens)
             left = BinOpNode(left, op, right)
             token = self.current_token()
         return left
 
-    def parse_term(self):
-        left = self.parse_factor()
+    def parse_comparison(self, stop_tokens=None):
+        stop_tokens = stop_tokens or []
+        left = self.parse_term(stop_tokens)
         token = self.current_token()
-        while token and token.type == 'OP' and token.value in ('+', '-'):
+        while token and token.type not in stop_tokens and token.type == 'OP' and token.value in ('==', '!=', '<', '>', '<=', '>='):
             op = token.value
             self.advance()
-            right = self.parse_factor()
+            right = self.parse_term(stop_tokens)
             left = BinOpNode(left, op, right)
             token = self.current_token()
         return left
 
-    def parse_factor(self):
+    def parse_factor(self, stop_tokens=None):
+        stop_tokens = stop_tokens or []
         token = self.current_token()
-        if token.type == 'OP' and token.value in ('-', 'not'):
-            op = token.value
-            self.advance()
-            expr = self.parse_factor()
-            return UnaryOpNode(op, expr)
+        if not token or token.type in stop_tokens:
+            return None  # stop immediately if in stop_tokens
 
         elif token.type == 'NUMBER':
             self.advance()
