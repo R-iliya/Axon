@@ -125,7 +125,7 @@ class Parser:
 
         elif token.type == 'LPAREN':
             self.advance()
-            expr = self.parse_expression()
+            expr = self.parse_expression(stop_tokens=['SEMICOLON'])
             if self.current_token().type != 'RPAREN':
                 raise ParseError("Expected ')' after expression")
             self.advance()
@@ -172,7 +172,7 @@ class Parser:
             if self.current_token().type != 'LPAREN':
                 raise ParseError("Expected '(' after print")
             self.advance()
-            expr = self.parse_expression()
+            expr = self.parse_expression(stop_tokens=['SEMICOLON'])
             if self.current_token().type != 'RPAREN':
                 raise ParseError("Expected ')' after print")
             self.advance()
@@ -188,7 +188,7 @@ class Parser:
             if self.current_token().type != 'EQ':
                 raise ParseError("Expected '=' in let statement")
             self.advance()
-            expr = self.parse_expression()
+            expr = self.parse_expression(stop_tokens=['SEMICOLON'])
             if self.current_token().type != 'SEMICOLON':
                 raise ParseError("Expected ';' after let")
             self.advance()
@@ -285,7 +285,7 @@ class Parser:
         # --- return statement ---
         elif token.value == 'return':
             self.advance()
-            expr = self.parse_expression()
+            expr = self.parse_expression(stop_tokens=['SEMICOLON'])
             if self.current_token().type != 'SEMICOLON':
                 raise ParseError("Expected ';' after return")
             self.advance()
@@ -298,7 +298,7 @@ class Parser:
                 var_name = token.value
                 self.advance()  # identifier
                 self.advance()  # '='
-                expr = self.parse_expression()
+                expr = self.parse_expression(stop_tokens=['SEMICOLON'])
                 if self.current_token().type != 'SEMICOLON':
                     raise ParseError("Expected ';' after assignment")
                 self.advance()
