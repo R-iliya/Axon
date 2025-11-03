@@ -316,3 +316,11 @@ class Parser:
                 self.advance()
                 return LetNode(var_name, expr)
            
+    # at the bottom of axon/parser.py
+    def parse_text(code):
+        """
+        Entry point for parsing Axon source code.
+        Returns a list of statement nodes.
+        """
+        parser = Parser(code)
+        return parser.parse()
