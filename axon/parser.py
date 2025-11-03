@@ -27,15 +27,21 @@ class Parser:
     # -----------------------
     # Expression Parsing
     # -----------------------
-    def parse_expression(self):
+    def parse_expression(self, stop_tokens=None):
+        stop_tokens = stop_tokens or []
         left = self.parse_logic_term()
         token = self.current_token()
-        while token and token.type == 'OP' and token.value in ('or',):
-            op = token.value
-            self.advance()
-            right = self.parse_logic_term()
-            left = BinOpNode(left, op, right)
-            token = self.current_token()
+        while token:
+            if token.type in stop_tokens:
+                break
+            if token.type == 'OP' and token.value in ('or',):
+                op = token.value
+                self.advance()
+                right = self.parse_logic_term()
+                left = BinOpNode(left, op, right)
+                token = self.current_token()
+            else:
+                break
         return left
 
     def parse_logic_term(self):
