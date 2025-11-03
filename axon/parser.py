@@ -199,9 +199,23 @@ class Parser:
                 raise ParseError("Expected '=' in let statement")
             self.advance()
             expr = self.parse_expression(stop_tokens=['SEMICOLON'])
-            if not self.current_token() or self.current_token().type != 'SEMICOLON':
-                raise ParseError("Expected ';' after let")
-            self.advance()
+
+            # ← Replace the following line:
+            # if not self.current_token() or self.current_token().type != 'SEMICOLON':
+            #     raise ParseError("Expected ';' after let")
+            # self.advance()
+
+            # ← With the robust version:
+            token = self.current_token()
+            if not token or token.type != 'SEMICOLON':
+                # fallback in case your lexer returns OP with value ';'
+                if token and token.type == 'OP' and token.value == ';':
+                    self.advance()
+                else:
+                    raise ParseError("Expected ';' after let")
+            else:
+                self.advance()
+
             return LetNode(var_name, expr)
 
         elif token.value == 'cls':
