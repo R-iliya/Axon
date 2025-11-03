@@ -23,6 +23,19 @@ class Parser:
     # -----------------------
     # Expression Parsing
     # -----------------------
+
+    def consume_semicolon(self):
+        """Advance past a semicolon, whether it's SEMICOLON or OP ';'"""
+        token = self.current_token()
+        if not token:
+            raise ParseError("Expected ';', got EOF")
+        if token.type == 'SEMICOLON':
+            self.advance()
+        elif token.type == 'OP' and token.value == ';':
+            self.advance()
+        else:
+            raise ParseError(f"Expected ';', got {token}")
+
     def parse_expression(self, stop_tokens=None):
         stop_tokens = stop_tokens or []
         left = self.parse_logic_term(stop_tokens)
@@ -174,7 +187,7 @@ class Parser:
         if not token or token.type != 'IDENT':
             raise ParseError(f"Expected statement, got {token}")
 
-        # --- statements ---
+        # --- print ---
         if token.value == 'print':
             self.advance()
             if not self.current_token() or self.current_token().type != 'LPAREN':
@@ -184,11 +197,10 @@ class Parser:
             if not self.current_token() or self.current_token().type != 'RPAREN':
                 raise ParseError("Expected ')' after print")
             self.advance()
-            if not self.current_token() or self.current_token().type != 'SEMICOLON':
-                raise ParseError("Expected ';' after print")
-            self.advance()
+            self.consume_semicolon()
             return PrintNode(expr)
 
+        # --- let ---
         elif token.value == 'let':
             self.advance()
             if not self.current_token() or self.current_token().type != 'IDENT':
@@ -199,44 +211,25 @@ class Parser:
                 raise ParseError("Expected '=' in let statement")
             self.advance()
             expr = self.parse_expression(stop_tokens=['SEMICOLON'])
-
-            # ← Replace the following line:
-            # if not self.current_token() or self.current_token().type != 'SEMICOLON':
-            #     raise ParseError("Expected ';' after let")
-            # self.advance()
-
-            # ← With the robust version:
-            token = self.current_token()
-            if not token or token.type != 'SEMICOLON':
-                # fallback in case your lexer returns OP with value ';'
-                if token and token.type == 'OP' and token.value == ';':
-                    self.advance()
-                else:
-                    raise ParseError("Expected ';' after let")
-            else:
-                self.advance()
-
+            self.consume_semicolon()
             return LetNode(var_name, expr)
 
+        # --- cls ---
         elif token.value == 'cls':
             self.advance()
-            if not self.current_token() or self.current_token().type != 'SEMICOLON':
-                raise ParseError("Expected ';' after cls")
-            self.advance()
+            self.consume_semicolon()
             return ClearNode()
 
+        # --- break ---
         elif token.value == 'break':
             self.advance()
-            if not self.current_token() or self.current_token().type != 'SEMICOLON':
-                raise ParseError("Expected ';' after break")
-            self.advance()
+            self.consume_semicolon()
             return BreakNode()
 
+        # --- continue ---
         elif token.value == 'continue':
             self.advance()
-            if not self.current_token() or self.current_token().type != 'SEMICOLON':
-                raise ParseError("Expected ';' after continue")
-            self.advance()
+            self.consume_semicolon()
             return ContinueNode()
 
         # --- if/else ---
@@ -312,9 +305,7 @@ class Parser:
         elif token.value == 'return':
             self.advance()
             expr = self.parse_expression(stop_tokens=['SEMICOLON'])
-            if not self.current_token() or self.current_token().type != 'SEMICOLON':
-                raise ParseError("Expected ';' after return")
-            self.advance()
+            self.consume_semicolon()
             return ReturnNode(expr)
 
         # --- bare assignment x = 5; ---
@@ -325,10 +316,9 @@ class Parser:
                 self.advance()
                 self.advance()
                 expr = self.parse_expression(stop_tokens=['SEMICOLON'])
-                if not self.current_token() or self.current_token().type != 'SEMICOLON':
-                    raise ParseError("Expected ';' after assignment")
-                self.advance()
+                self.consume_semicolon()
                 return LetNode(var_name, expr)
+
             
     def parse(self):
         """
