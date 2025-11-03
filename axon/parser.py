@@ -49,8 +49,11 @@ class Parser:
 
     def parse_term(self):
         node = self.parse_factor()
-        while self.current_token() and self.current_token().type in ('STAR', 'SLASH'):
-            op = self.current_token().type
+        while self.current_token() and (
+            (self.current_token().type == 'OP' and self.current_token().value in ('*', '/'))
+            or self.current_token().type in ('STAR', 'SLASH')
+        ):
+            op = self.current_token().value if self.current_token().type == 'OP' else self.current_token().type
             self.advance()
             right = self.parse_factor()
             node = BinOpNode(left=node, op=op, right=right)
