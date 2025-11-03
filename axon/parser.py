@@ -147,9 +147,13 @@ class Parser:
     # -----------------------
     def parse_statement(self):
         token = self.current_token()
+        if token is None:
+            raise ParseError("Unexpected end of input")
+
         if token.type != 'IDENT':
             raise ParseError(f"Expected statement, got {token}")
 
+        # --- print statement ---
         if token.value == 'print':
             self.advance()
             if self.current_token().type != 'LPAREN':
@@ -164,6 +168,7 @@ class Parser:
             self.advance()
             return PrintNode(expr)
 
+        # --- let statement (explicit variable declaration) ---
         elif token.value == 'let':
             self.advance()
             var_name = self.current_token().value
@@ -177,6 +182,22 @@ class Parser:
             self.advance()
             return LetNode(var_name, expr)
 
+        # --- bare assignment: x = 5; ---
+        elif token.type == 'IDENT':
+            var_name = token.value
+            self.advance()
+            # check if it's an assignment
+            if self.current_token() and self.current_token().type == 'EQ':
+                self.advance()
+                expr = self.parse_expression()
+                if self.current_token().type != 'SEMICOLON':
+                    raise ParseError("Expected ';' after assignment")
+                self.advance()
+                return LetNode(var_name, expr)
+            else:
+                raise ParseError(f"Unknown statement: {token}")
+
+        # --- clear screen ---
         elif token.value == 'cls':
             self.advance()
             if self.current_token().type != 'SEMICOLON':
@@ -184,6 +205,7 @@ class Parser:
             self.advance()
             return ClearNode()
 
+        # --- break ---
         elif token.value == 'break':
             self.advance()
             if self.current_token().type != 'SEMICOLON':
@@ -191,6 +213,7 @@ class Parser:
             self.advance()
             return BreakNode()
 
+        # --- continue ---
         elif token.value == 'continue':
             self.advance()
             if self.current_token().type != 'SEMICOLON':
@@ -198,11 +221,7 @@ class Parser:
             self.advance()
             return ContinueNode()
 
-        # existing if / while / for / fn / return logic stays the same
-        # ...
-        # for brevity, assume previous code for IfNode, WhileNode, ForNode, FunctionNode, ReturnNode parsing is included here
-        # ...
-
+        # (IfNode, WhileNode, ForNode, etc. would follow below)
         else:
             raise ParseError(f"Unknown statement: {token}")
 
