@@ -218,3 +218,14 @@ class Parser:
         while self.current_token() is not None:
             stmts.append(self.parse_statement())
         return stmts
+
+# -----------------------
+# Public API Entry Point
+# -----------------------
+def parse_text(source_code: str):
+    """
+    Entry point for Axon's parser.
+    Takes raw source code as text and returns the parsed AST.
+    """
+    parser = Parser(source_code)
+    return parser.parse()
