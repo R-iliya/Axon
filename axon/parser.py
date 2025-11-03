@@ -15,9 +15,7 @@ class Parser:
         self.pos = 0
 
     def current_token(self):
-        if self.pos < len(self.tokens):
-            return self.tokens[self.pos]
-        return None
+        return self.tokens[self.pos] if self.pos < len(self.tokens) else None
 
     def advance(self):
         self.pos += 1
@@ -80,7 +78,7 @@ class Parser:
         stop_tokens = stop_tokens or []
         token = self.current_token()
         if not token or token.type in stop_tokens:
-            return None  # stop immediately if in stop_tokens
+            return None
 
         if token.type == 'OP' and token.value in ('-', 'not'):
             op = token.value
@@ -100,9 +98,10 @@ class Parser:
 
             self.advance()
             next_token = self.current_token()
+
             # function call
             if next_token and next_token.type == 'LPAREN':
-                self.advance()  # skip '('
+                self.advance()
                 args = []
                 while self.current_token() and self.current_token().type != 'RPAREN':
                     args.append(self.parse_expression(stop_tokens=['COMMA', 'RPAREN']))
@@ -110,8 +109,9 @@ class Parser:
                         self.advance()
                 if not self.current_token() or self.current_token().type != 'RPAREN':
                     raise ParseError("Expected ')' after function call")
-                self.advance()  # skip ')'
+                self.advance()
                 return CallNode(token.value, args)
+
             # array indexing
             elif next_token and next_token.type == 'LBRACKET':
                 collection = VariableNode(token.value)
@@ -125,13 +125,15 @@ class Parser:
                 return collection
             else:
                 return VariableNode(token.value)
+
         elif token.type == 'LPAREN':
             self.advance()
-            expr = self.parse_expression(stop_tokens=['RPAREN', 'SEMICOLON'])
+            expr = self.parse_expression(stop_tokens=stop_tokens + ['RPAREN'])
             if not self.current_token() or self.current_token().type != 'RPAREN':
                 raise ParseError("Expected ')' after expression")
             self.advance()
             return expr
+
         elif token.type == 'LBRACKET':  # list literal
             self.advance()
             elements = []
@@ -143,6 +145,7 @@ class Parser:
                 raise ParseError("Expected ']' after list")
             self.advance()
             return ListNode(elements)
+
         elif token.type == 'LBRACE':  # dict literal
             self.advance()
             entries = []
@@ -159,6 +162,7 @@ class Parser:
                 raise ParseError("Expected '}' after dict")
             self.advance()
             return DictNode(entries)
+
         else:
             raise ParseError(f"Unexpected token {token}")
 
@@ -170,6 +174,7 @@ class Parser:
         if not token or token.type != 'IDENT':
             raise ParseError(f"Expected statement, got {token}")
 
+        # --- statements ---
         if token.value == 'print':
             self.advance()
             if not self.current_token() or self.current_token().type != 'LPAREN':
@@ -183,6 +188,7 @@ class Parser:
                 raise ParseError("Expected ';' after print")
             self.advance()
             return PrintNode(expr)
+
         elif token.value == 'let':
             self.advance()
             if not self.current_token() or self.current_token().type != 'IDENT':
@@ -197,24 +203,29 @@ class Parser:
                 raise ParseError("Expected ';' after let")
             self.advance()
             return LetNode(var_name, expr)
+
         elif token.value == 'cls':
             self.advance()
             if not self.current_token() or self.current_token().type != 'SEMICOLON':
                 raise ParseError("Expected ';' after cls")
             self.advance()
             return ClearNode()
+
         elif token.value == 'break':
             self.advance()
             if not self.current_token() or self.current_token().type != 'SEMICOLON':
                 raise ParseError("Expected ';' after break")
             self.advance()
             return BreakNode()
+
         elif token.value == 'continue':
             self.advance()
             if not self.current_token() or self.current_token().type != 'SEMICOLON':
                 raise ParseError("Expected ';' after continue")
             self.advance()
             return ContinueNode()
+
+        # --- if/else ---
         elif token.value == 'if':
             self.advance()
             condition = self.parse_expression(stop_tokens=['LBRACE'])
@@ -230,6 +241,8 @@ class Parser:
                 self.advance()
                 false_body = self.parse_block()
             return IfNode(condition, true_body, false_body)
+
+        # --- while ---
         elif token.value == 'while':
             self.advance()
             condition = self.parse_expression(stop_tokens=['LBRACE'])
@@ -238,6 +251,8 @@ class Parser:
             self.advance()
             body = self.parse_block()
             return WhileNode(condition, body)
+
+        # --- for ---
         elif token.value == 'for':
             self.advance()
             var_name = self.current_token().value
@@ -255,6 +270,8 @@ class Parser:
             self.advance()
             body = self.parse_block()
             return ForNode(var_name, start_expr, end_expr, body)
+
+        # --- function ---
         elif token.value == 'fn':
             self.advance()
             func_name = self.current_token().value
@@ -276,6 +293,8 @@ class Parser:
             self.advance()
             body = self.parse_block()
             return FunctionNode(func_name, params, body)
+
+        # --- return ---
         elif token.value == 'return':
             self.advance()
             expr = self.parse_expression(stop_tokens=['SEMICOLON'])
@@ -283,6 +302,8 @@ class Parser:
                 raise ParseError("Expected ';' after return")
             self.advance()
             return ReturnNode(expr)
+
+        # --- bare assignment x = 5; ---
         elif token.type == 'IDENT':
             next_token = self.tokens[self.pos + 1] if self.pos + 1 < len(self.tokens) else None
             if next_token and next_token.type == 'EQ':
@@ -294,30 +315,4 @@ class Parser:
                     raise ParseError("Expected ';' after assignment")
                 self.advance()
                 return LetNode(var_name, expr)
-            else:
-                raise ParseError(f"Unknown statement starting with {token.value}")
-
-    # -----------------------
-    # Block Parsing
-    # -----------------------
-    def parse_block(self):
-        stmts = []
-        while self.current_token() and self.current_token().type != 'RBRACE':
-            stmts.append(self.parse_statement())
-        if not self.current_token() or self.current_token().type != 'RBRACE':
-            raise ParseError("Expected '}' to close block")
-        self.advance()  # skip RBRACE
-        return stmts
-
-    # -----------------------
-    # Entry point
-    # -----------------------
-    def parse(self):
-        stmts = []
-        while self.current_token():
-            stmts.append(self.parse_statement())
-        return stmts
-
-def parse_text(code):
-    parser = Parser(code)
-    return parser.parse()
+           
