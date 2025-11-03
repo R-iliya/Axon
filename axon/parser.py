@@ -318,3 +318,11 @@ class Parser:
         while self.current_token() is not None:
             stmts.append(self.parse_statement())
         return stmts
+
+def parse_text(code):
+    """
+    Helper function for convenience.
+    Returns the list of parsed statements from a code string.
+    """
+    parser = Parser(code)
+    return parser.parse()
