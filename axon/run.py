@@ -7,14 +7,17 @@ from axon.vm import VM
 import sys
 
 def run_file(path: str):
-    src = open(path, "r", encoding="utf-8").read()
+    # Use 'with' so the file is safely closed after reading
+    with open(path, "r", encoding="utf-8") as f:
+        src = f.read()
+    
     prog = parse_text(src)
     sema.analyze(prog)
     co = compile_program(prog)
     vm = VM()
     vm.push_frame(co)
     vm.run()
-
+    
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage: python -m axon.run <file.ax>")
