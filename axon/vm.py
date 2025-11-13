@@ -82,5 +82,6 @@ class VM:
             else:
                 raise RuntimeError(f"Unknown opcode {op}")
     # simple host binding
+    @staticmethod
     def _host_print(self, v):
         print(v)

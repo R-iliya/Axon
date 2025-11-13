@@ -99,6 +99,7 @@ class LetNode:
         context[self.name] = self.expr.eval(context)
 
 class ClearNode:
+    @staticmethod
     def eval(self, context):
         os.system('cls' if os.name == 'nt' else 'clear')
 
@@ -149,10 +150,12 @@ class ForNode:
                     continue
 
 class BreakNode:
+    @staticmethod
     def eval(self, context):
         raise BreakException()
 
 class ContinueNode:
+    @staticmethod
     def eval(self, context):
         raise ContinueException()
 
