@@ -24,6 +24,9 @@ def compile_program(prog: Program) -> CodeObject:
         if isinstance(stmt, LetNode):
             code.extend(compile_expr(stmt.expr, consts))
             code.append(("STORE_NAME", stmt.name))
+        elif isinstance(stmt, PrintNode):
+            code.extend(compile_expr(stmt.expr, consts))
+            code.append(("PRINT",))
 
         # print(expr);
         elif isinstance(stmt, PrintNode):
