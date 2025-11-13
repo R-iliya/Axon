@@ -12,7 +12,7 @@ PROMPT = ">> "
 
 def repl():
     print("Axon REPL — enter statements ending with ';'. Ctrl-D to exit.")
-    vm = VM()
+    # vm = VM()
     context = {}  # stores variables and runtime context
 
     while True:
