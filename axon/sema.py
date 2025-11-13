@@ -1,5 +1,5 @@
 # axon/sema.py
-from axon.ast import *
+from axon.ast import *  # noqa: F403, F401
 from typing import Set
 
 class SemanticError(Exception):
