@@ -1,18 +1,17 @@
 try:
-    import readline  # for Linux/macOS
+    import readline  # Linux/macOS
 except ImportError:
-    import pyreadline3 as readline  # Windows alternative
+    import pyreadline3 as readline  # Windows
 
 from axon.parser import Parser
 from axon.compiler import compile_program
 from axon.vm import VM
-from axon import sema
 
 PROMPT = ">> "
 
 def repl():
     print("Axon REPL — enter statements ending with ';'. Ctrl-D to exit.")
-    context = {}  # stores variables and runtime context
+    vm = VM()  # single persistent VM for REPL
 
     while True:
         try:
@@ -24,9 +23,10 @@ def repl():
             parser = Parser(code)
             statements = parser.parse()  # returns list of statement nodes
 
-            # ---- execute statements ----
-            for stmt in statements:
-                stmt.eval(context)
+            # ---- compile and run in VM ----
+            co = compile_program(statements)
+            vm.push_frame(co)
+            vm.run()
 
         except EOFError:
             print("\nExiting Axon REPL.")
