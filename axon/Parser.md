@@ -441,4 +441,3 @@ Feel free to modify or expand for your own language experiments.
 
 ---
 
-Would you like me to add **syntax-highlighted code snippets** and **diagram illustrations (AST + flow)** for a fancier GitHub README look? I can format it with visuals and emoji headers to make it stand out like a real dev-tool project.
