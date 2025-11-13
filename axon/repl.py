@@ -4,15 +4,15 @@ except ImportError:
     import pyreadline3 as readline  # Windows alternative
 
 from axon.parser import Parser
-from axon.compiler import compile_program  # optional for later VM
-from axon.vm import VM                       # optional for later VM
-from axon import sema                        # optional for later VM
+from axon.compiler import compile_program
+from axon.vm import VM
+from axon import sema
 
 PROMPT = ">> "
 
 def repl():
     print("Axon REPL — enter statements ending with ';'. Ctrl-D to exit.")
-    vm = VM()  # optional, only if you plan to use your VM
+    vm = VM()
     context = {}  # stores variables and runtime context
 
     while True:
