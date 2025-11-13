@@ -15,7 +15,9 @@ def analyze(program: Program):
     assigned: Set[str] = set()
     used: Set[str] = set()
 
-    for stmt in program.statements:
+    stmts = program.statements if hasattr(program, "statements") else program
+    
+    for stmt in stmts:
         if isinstance(stmt, Assign):
             assigned.add(stmt.name)
             # inspect rhs for used names
