@@ -2,6 +2,7 @@
 from typing import List, Tuple, Any, Dict
 from axon.ast import *
 from dataclasses import dataclass
+from axon.nodes import LetNode, PrintNode
 
 Instruction = Tuple
 
@@ -18,16 +19,20 @@ def compile_program(prog: Program) -> CodeObject:
     stmts = prog.statements if hasattr(prog, "statements") else prog
 
     for stmt in stmts:
-        if isinstance(stmt, Assign):
+
+        # let x = expr;
+        if isinstance(stmt, LetNode):
             code.extend(compile_expr(stmt.value, consts))
             code.append(("STORE_NAME", stmt.name))
-        elif isinstance(stmt, Print):
+
+        # print(expr);
+        elif isinstance(stmt, PrintNode):
             code.extend(compile_expr(stmt.expr, consts))
             code.append(("PRINT",))
         else:
             raise Exception(f"Unhandled stmt in compiler: {stmt}")
-    code.append(("RETURN",))
-    return CodeObject(code=code, consts=consts, name="<module>")
+
+    return CodeObject(code, consts)
 
 def compile_expr(node, consts: List[Any]) -> List[Instruction]:
     if isinstance(node, Number):
