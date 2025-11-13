@@ -22,7 +22,7 @@ def compile_program(prog: Program) -> CodeObject:
 
         # let x = expr;
         if isinstance(stmt, LetNode):
-            code.extend(compile_expr(stmt.value, consts))
+            code.extend(compile_expr(stmt.expr, consts))
             code.append(("STORE_NAME", stmt.name))
 
         # print(expr);
