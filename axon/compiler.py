@@ -14,7 +14,10 @@ class CodeObject:
 def compile_program(prog: Program) -> CodeObject:
     consts: List[Any] = []
     code: List[Instruction] = []
-    for stmt in prog.statements:
+
+    stmts = prog.statements if hasattr(prog, "statements") else prog
+
+    for stmt in stmts:
         if isinstance(stmt, Assign):
             code.extend(compile_expr(stmt.value, consts))
             code.append(("STORE_NAME", stmt.name))
