@@ -77,9 +77,22 @@ class Parser:
 
     def parse_term(self, stop_tokens=None):
         stop_tokens = stop_tokens or []
-        left = self.parse_factor(stop_tokens)
+        left = self.parse_factor_term(stop_tokens)  # <--- changed here
         token = self.current_token()
         while token and token.type not in stop_tokens and token.type == 'OP' and token.value in ('+', '-'):
+            op = token.value
+            self.advance()
+            right = self.parse_factor_term(stop_tokens)  # <--- changed here
+            left = BinOpNode(left, op, right)
+            token = self.current_token()
+        return left
+
+    def parse_factor_term(self, stop_tokens=None):
+        """Handles *, /, % operators with correct precedence"""
+        stop_tokens = stop_tokens or []
+        left = self.parse_factor(stop_tokens)
+        token = self.current_token()
+        while token and token.type not in stop_tokens and token.type == 'OP' and token.value in ('*', '/', '%'):
             op = token.value
             self.advance()
             right = self.parse_factor(stop_tokens)
