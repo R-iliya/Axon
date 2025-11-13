@@ -7,7 +7,7 @@
 ![GitHub license](https://img.shields.io/github/license/R-iliya/Axon?style=flat&color=4A2BE3)
 ![GitHub last commit](https://img.shields.io/github/last-commit/R-iliya/NoxeBrowser?style=flat&color=4A2BE3)
 
->> Axon, general-purpose programming language targeting for CLI / desktop
+>> Axon, general-purpose programming language targeting for CLI / desktop.
 
 Axon is a small, easy-to-modify general-purpose language prototype implemented in Python.
 This repo contains a minimal compiler → bytecode → VM pipeline and a REPL.
