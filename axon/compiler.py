@@ -37,26 +37,50 @@ def compile_program(prog: Program) -> CodeObject:
 
     return CodeObject(code, consts)
 
-def compile_expr(node, consts: List[Any]) -> List[Instruction]:
-    if isinstance(node, Number):
+def compile_expr(node, consts):
+    from axon.nodes import (
+        NumberNode, StringNode, BooleanNode, VariableNode,
+        BinOpNode, UnaryOpNode, ListNode, IndexNode, DictNode,
+        CallNode
+    )
+
+    # number literal
+    if isinstance(node, NumberNode):
         idx = add_const(consts, node.value)
         return [("CONST", idx)]
-    if isinstance(node, Var):
+
+    # string literal
+    if isinstance(node, StringNode):
+        idx = add_const(consts, node.value)
+        return [("CONST", idx)]
+
+    # boolean literal
+    if isinstance(node, BooleanNode):
+        idx = add_const(consts, node.value)
+        return [("CONST", idx)]
+
+    # variable reference
+    if isinstance(node, VariableNode):
         return [("LOAD_NAME", node.name)]
-    if isinstance(node, BinOp):
+
+    # binary operators
+    if isinstance(node, BinOpNode):
         code = []
         code.extend(compile_expr(node.left, consts))
         code.extend(compile_expr(node.right, consts))
-        if node.op == "+":
+        op = node.op
+
+        if op == "+":
             code.append(("BINARY_ADD",))
-        elif node.op == "-":
+        elif op == "-":
             code.append(("BINARY_SUB",))
-        elif node.op == "*":
+        elif op == "*":
             code.append(("BINARY_MUL",))
-        elif node.op == "/":
+        elif op == "/":
             code.append(("BINARY_DIV",))
         else:
-            raise Exception(f"Unknown binary op: {node.op}")
+            raise Exception(f"Unknown binary op: {op}")
+
         return code
     raise Exception(f"Unhandled expr: {node}")
 
