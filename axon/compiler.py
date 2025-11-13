@@ -35,11 +35,6 @@ def compile_program(prog: Program) -> CodeObject:
     return CodeObject(code, consts, name="__main__")
 
 def compile_expr(node, consts):
-    from axon.nodes import (
-        NumberNode, StringNode, BooleanNode, VariableNode,
-        BinOpNode, UnaryOpNode, ListNode, IndexNode, DictNode,
-        CallNode
-    )
 
     # number literal
     if isinstance(node, NumberNode):
