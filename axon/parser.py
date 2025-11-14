@@ -260,7 +260,22 @@ class Parser:
         self.consume_semicolon()
         return expr
 
+    def parse(self):
+        """Parse all statements in the code and return a list of statement nodes."""
+        statements = []
+        while self.current_token():
+            stmt = self.parse_statement()
+            if stmt is not None:
+                statements.append(stmt)
+        return statements
 
+    def expect(self, token_type):
+        token = self.current_token()
+        if not token or token.type != token_type:
+            raise ParseError(f"Expected token type {token_type}, got {token}")
+        self.advance()
+        return token
+    
 def parse_text(code):
     """
     Entry point for parsing Axon source code.
