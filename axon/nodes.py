@@ -113,9 +113,10 @@ class IfNode:
         if self.condition.eval(context):
             for stmt in self.body:
                 stmt.eval(context)
-        else:
+        elif self.else_body:
             for stmt in self.else_body:
                 stmt.eval(context)
+        return None
 
 class WhileNode:
     def __init__(self, condition, body):
