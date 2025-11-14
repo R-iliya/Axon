@@ -34,31 +34,6 @@ def compile_program(prog) -> CodeObject:
         elif isinstance(stmt, ClearNode):
             code.append(("CLEAR",))
 
-        # if/else
-        elif isinstance(stmt, IfNode):
-            # 1️⃣ compile condition (leave on stack for JUMP_IF_FALSE)
-            code.extend(compile_expr(stmt.condition, consts))
-
-            # 2️⃣ compile true/false bodies
-            true_code = compile_program(stmt.body).code
-            false_code = compile_program(stmt.else_body).code if stmt.else_body else []
-
-            # 3️⃣ jump over true branch if condition False
-            code.append(("JUMP_IF_FALSE", len(true_code) + (1 if false_code else 0)))
-
-            # 4️⃣ true branch
-            code.extend(true_code)
-
-            if false_code:
-                # 5️⃣ jump past false branch after executing true
-                code.append(("JUMP", len(false_code)))
-                code.extend(false_code)
-
-            # 6️⃣ normalize stack for REPL
-            code.append(("CONST", add_const(consts, None)))
-
-
-
         # while loop
         elif isinstance(stmt, WhileNode):
             start_idx = len(code)
