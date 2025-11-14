@@ -233,40 +233,24 @@ class Parser:
             self.consume_semicolon()
             return ReturnNode(expr)
 
-        elif token.value == 'true':
+        elif token.value in ('true', 'false'):
             self.advance()
             self.consume_semicolon()
-            return BooleanNode(True)
+            return BooleanNode(token.value == 'true')
 
-        elif token.value == 'false':
-            self.advance()
-            self.consume_semicolon()
-            return BooleanNode(False)
-
-        elif token.type == 'IDENT':
-            next_token = self.peek_next()
-            if next_token and next_token.type == 'EQ':
-                var_name = token.value
-                self.advance()
-                self.advance()
-                expr = self.parse_expression(stop_tokens=['SEMICOLON'])
-                self.consume_semicolon()
-                return LetNode(var_name, expr)
-        
+        # --- if / else block ---
         elif token.value == 'if':
             self.advance()
             condition = self.parse_expression(stop_tokens=['LBRACE'])
             self.expect('LBRACE')
 
-            # parse the body inside braces
             body = []
             while self.current_token() and self.current_token().type != 'RBRACE':
                 stmt = self.parse_statement()
-                if stmt is not None:
+                if stmt:
                     body.append(stmt)
             self.expect('RBRACE')
 
-            # parse optional else
             else_body = []
             next_token = self.current_token()
             if next_token and next_token.value == 'else':
@@ -274,13 +258,24 @@ class Parser:
                 self.expect('LBRACE')
                 while self.current_token() and self.current_token().type != 'RBRACE':
                     stmt = self.parse_statement()
-                    if stmt is not None:
+                    if stmt:
                         else_body.append(stmt)
                 self.expect('RBRACE')
 
             return IfNode(condition, body, else_body)
 
-        # --- top-level expressions ---
+        # --- bare assignment x = 5; ---
+        elif token.type == 'IDENT':
+            next_token = self.peek_next()
+            if next_token and next_token.type == 'OP' and next_token.value == '=':
+                var_name = token.value
+                self.advance()
+                self.advance()  # skip '='
+                expr = self.parse_expression(stop_tokens=['SEMICOLON'])
+                self.consume_semicolon()
+                return LetNode(var_name, expr)
+
+        # --- top-level expression (auto-print) ---
         expr = self.parse_expression(stop_tokens=['SEMICOLON'])
         self.consume_semicolon()
         return PrintNode(expr)
