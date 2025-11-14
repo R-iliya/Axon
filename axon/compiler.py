@@ -34,6 +34,38 @@ def compile_program(prog) -> CodeObject:
         elif isinstance(stmt, ClearNode):
             code.append(("CLEAR",))
 
+        elif isinstance(stmt, IfNode):
+            # 1 Compile condition
+            code.extend(compile_expr(stmt.condition, consts))
+            code.append(("JUMP_IF_FALSE", 0))  # placeholder offset
+            jump_if_false_idx = len(code) - 1
+
+            # 2 Compile true body
+            true_code = compile_program(stmt.body).code
+            code.extend(true_code)
+
+            # 3 Jump past false/elif/else body
+            code.append(("JUMP", 0))  # placeholder
+            jump_past_false_idx = len(code) - 1
+
+            # 4 Compile false / elif / else
+            false_code = []
+            if stmt.else_body:
+                if isinstance(stmt.else_body, IfNode):  # elif chain
+                    false_code = compile_program([stmt.else_body]).code
+                else:  # normal else
+                    false_code = compile_program(stmt.else_body).code
+            # patch JUMP_IF_FALSE offset
+            code[jump_if_false_idx] = ("JUMP_IF_FALSE", len(true_code) + 1)
+
+            # insert false branch
+            code.extend(false_code)
+            # patch JUMP over false branch
+            code[jump_past_false_idx] = ("JUMP", len(false_code))
+
+            # 5 Push None to normalize REPL
+            code.append(("CONST", add_const(consts, None)))
+
         # while loop
         elif isinstance(stmt, WhileNode):
             start_idx = len(code)

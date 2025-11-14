@@ -103,6 +103,17 @@ class ClearNode:
     def eval(context):
         os.system('cls' if os.name == 'nt' else 'clear')
 
+class IfNode:
+    def __init__(self, condition, body, else_body=None):
+        self.condition = condition
+        self.body = body or []
+        self.else_body = else_body  # can be None or another IfNode or list
+
+class ElifNode:
+    def __init__(self, condition, body):
+        self.condition = condition
+        self.body = body or []
+
 class WhileNode:
     def __init__(self, condition, body):
         self.condition = condition
