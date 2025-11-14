@@ -30,10 +30,7 @@ def repl():
 
             try:
                 vm.push_frame(co)
-                result = vm.run()
-                # Only print top-level expression results, ignore None
-                if result is not None:
-                    print(result)
+                vm.run()
             except Exception as e:
                 print(f"[!!] Runtime error: {e}")
 
