@@ -38,6 +38,7 @@ TOKEN_SPEC = [
     ('RBRACKET',    r'\]'),
     ('COMMA',       r','),
     ('SEMICOLON',   r';'),
+    ('COLON',     r':'),
 
     # --- Identifiers ---
     ('IDENT',       r'[A-Za-z_][A-Za-z0-9_]*'),
