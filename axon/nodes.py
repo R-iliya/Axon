@@ -106,13 +106,14 @@ class ClearNode:
 class IfNode:
     def __init__(self, condition, body, else_body=None):
         self.condition = condition
-        self.body = body
+        self.body = body or []
         self.else_body = else_body or []
+
     def eval(self, context):
         if self.condition.eval(context):
             for stmt in self.body:
                 stmt.eval(context)
-        elif self.else_body:
+        else:
             for stmt in self.else_body:
                 stmt.eval(context)
 
