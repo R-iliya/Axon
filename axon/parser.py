@@ -257,8 +257,8 @@ class Parser:
         # --- top-level expressions ---
         expr = self.parse_expression(stop_tokens=['SEMICOLON'])
         self.consume_semicolon()
-        return expr
-
+        return PrintNode(expr)
+    
     def parse(self):
         """Parse all statements in the code and return a list of statement nodes."""
         statements = []
