@@ -18,17 +18,23 @@ class Frame:
 class VM:
     def __init__(self):
         self.frames: List[Frame] = []
+        # globals persist across top-level frames / REPL runs
         self.globals: Dict[str, Any] = {}
-        # persistent host bindings
+        # register basic host bindings
         self.globals["print"] = self._host_print
-        self.globals["cls"] = self._host_cls
 
     def push_frame(self, co: CodeObject):
+        # Top-level frames (program entry / REPL) should persist variables.
+        # Make top-level frames share self.globals as locals so `let` survives.
+        if co.name == "__main__":
+            locals_ref = self.globals
+        else:
+            locals_ref = {}
         f = Frame(
             code=co.code.copy(),
             ip=0,
             stack=[],
-            locals={},
+            locals=locals_ref,
             name=co.name,
             consts=co.consts.copy(),
             loop_stack=[]
@@ -44,6 +50,7 @@ class VM:
     def run(self):
         while self.frames:
             f = self.current()
+            # if we've exhausted code, pop frame
             if f.ip >= len(f.code):
                 self.pop_frame()
                 continue
@@ -52,11 +59,11 @@ class VM:
             f.ip += 1
             op = instr[0]
 
-            # -----------------------
-            # Stack operations / constants
-            # -----------------------
+            # ---------- stack / consts ----------
             if op == "CONST":
-                f.stack.append(f.consts[instr[1]])
+                idx = instr[1]
+                f.stack.append(f.consts[idx])
+
             elif op == "LOAD_NAME":
                 name = instr[1]
                 if name in f.locals:
@@ -65,126 +72,179 @@ class VM:
                     f.stack.append(self.globals[name])
                 else:
                     raise RuntimeError(f"NameError: name '{name}' is not defined")
+
             elif op == "STORE_NAME":
                 name = instr[1]
+                if not f.stack:
+                    raise RuntimeError("STORE_NAME with empty stack")
                 val = f.stack.pop()
+                # store into locals (which may be shared globals for top-level)
                 f.locals[name] = val
 
-            # -----------------------
-            # Binary ops
-            # -----------------------
-            elif op.startswith("BINARY_"):
-                b = f.stack.pop()
-                a = f.stack.pop()
-                if op == "BINARY_ADD": f.stack.append(a + b)
-                elif op == "BINARY_SUB": f.stack.append(a - b)
-                elif op == "BINARY_MUL": f.stack.append(a * b)
-                elif op == "BINARY_DIV": f.stack.append(a / b)
-                elif op == "BINARY_EQ": f.stack.append(a == b)
-                elif op == "BINARY_NE": f.stack.append(a != b)
-                elif op == "BINARY_LT": f.stack.append(a < b)
-                elif op == "BINARY_GT": f.stack.append(a > b)
-                elif op == "BINARY_LTE": f.stack.append(a <= b)
-                elif op == "BINARY_GTE": f.stack.append(a >= b)
-                elif op == "BINARY_AND": f.stack.append(a and b)
-                elif op == "BINARY_OR": f.stack.append(a or b)
+            # ---------- arithmetic / binary ----------
+            elif op == "BINARY_ADD":
+                b = f.stack.pop(); a = f.stack.pop(); f.stack.append(a + b)
+            elif op == "BINARY_SUB":
+                b = f.stack.pop(); a = f.stack.pop(); f.stack.append(a - b)
+            elif op == "BINARY_MUL":
+                b = f.stack.pop(); a = f.stack.pop(); f.stack.append(a * b)
+            elif op == "BINARY_DIV":
+                b = f.stack.pop(); a = f.stack.pop(); f.stack.append(a / b)
+            elif op == "BINARY_MOD":
+                b = f.stack.pop(); a = f.stack.pop(); f.stack.append(a % b)
 
-            # -----------------------
-            # Unary ops
-            # -----------------------
-            elif op == "UNARY":
-                val = f.stack.pop()
-                unary_op = instr[1]
-                if unary_op == "-": f.stack.append(-val)
-                elif unary_op == "not": f.stack.append(not val)
+            # boolean-like binary ops (note: 'and'/'or' in compiler are mapped here)
+            elif op == "BINARY_AND":
+                b = f.stack.pop(); a = f.stack.pop(); f.stack.append(a and b)
+            elif op == "BINARY_OR":
+                b = f.stack.pop(); a = f.stack.pop(); f.stack.append(a or b)
 
-            # -----------------------
-            # List / dict / index
-            # -----------------------
+            # comparisons
+            elif op == "COMPARE_EQ":
+                b = f.stack.pop(); a = f.stack.pop(); f.stack.append(a == b)
+            elif op == "COMPARE_NE":
+                b = f.stack.pop(); a = f.stack.pop(); f.stack.append(a != b)
+            elif op == "COMPARE_LT":
+                b = f.stack.pop(); a = f.stack.pop(); f.stack.append(a < b)
+            elif op == "COMPARE_LE":
+                b = f.stack.pop(); a = f.stack.pop(); f.stack.append(a <= b)
+            elif op == "COMPARE_GT":
+                b = f.stack.pop(); a = f.stack.pop(); f.stack.append(a > b)
+            elif op == "COMPARE_GE":
+                b = f.stack.pop(); a = f.stack.pop(); f.stack.append(a >= b)
+
+            # unary
+            elif op == "UNARY_NEG":
+                a = f.stack.pop(); f.stack.append(-a)
+            elif op == "UNARY_NOT":
+                a = f.stack.pop(); f.stack.append(not a)
+
+            # ---------- build containers ----------
             elif op == "BUILD_LIST":
                 n = instr[1]
-                elems = [f.stack.pop() for _ in range(n)][::-1]
-                f.stack.append(elems)
+                if n:
+                    items = [f.stack.pop() for _ in range(n)][::-1]
+                else:
+                    items = []
+                f.stack.append(items)
+
             elif op == "BUILD_DICT":
                 n = instr[1]
-                items = [f.stack.pop() for _ in range(n*2)][::-1]
                 d = {}
-                for i in range(0, len(items), 2):
-                    d[items[i]] = items[i+1]
+                for _ in range(n):
+                    val = f.stack.pop()
+                    key = f.stack.pop()
+                    d[key] = val
                 f.stack.append(d)
-            elif op == "INDEX":
+
+            elif op == "BINARY_SUBSCR":
                 idx = f.stack.pop()
                 coll = f.stack.pop()
                 f.stack.append(coll[idx])
 
-            # -----------------------
-            # Printing / clearing
-            # -----------------------
+            # ---------- control / flow ----------
             elif op == "PRINT":
-                val = f.stack.pop()
+                # Print consumes top of stack (if any); otherwise prints None
+                val = f.stack.pop() if f.stack else None
                 printer = self.globals.get("print", builtins.print)
-                printer(val)
-            elif op == "CLEAR":
-                self._host_cls()
+                # call host print (our wrapper) or fallback builtin
+                if callable(printer):
+                    try:
+                        printer(val)
+                    except TypeError:
+                        # if host wrapper expects different signature, fallback
+                        print(val)
+                else:
+                    print(val)
 
-            # -----------------------
-            # Flow control
-            # -----------------------
+            elif op == "CLEAR":
+                os.system("cls" if os.name == "nt" else "clear")
+
             elif op == "JUMP":
-                f.ip += instr[1] - 1
+                offset = instr[1]
+                # offset is relative (number of instructions to advance), adjust because we've incremented ip
+                f.ip += offset - 1
+
             elif op == "JUMP_IF_FALSE":
-                cond = f.stack.pop()
+                offset = instr[1]
+                cond = f.stack.pop() if f.stack else False
                 if not cond:
-                    f.ip += instr[1] - 1
+                    f.ip += offset - 1
+
             elif op == "BREAK":
                 if not f.loop_stack:
                     raise RuntimeError("BREAK outside loop")
-                f.ip = f.loop_stack[-1]
+                # jump to after loop: loop_stack stores exit ip
+                exit_ip = f.loop_stack[-1]
+                f.ip = exit_ip
+
             elif op == "CONTINUE":
                 if not f.loop_stack:
                     raise RuntimeError("CONTINUE outside loop")
-                f.ip = f.loop_stack[-1] - 1
+                # jump back to loop condition (we expect the compiler to set the loop start properly)
+                start_ip = f.loop_stack[-2] if len(f.loop_stack) >= 2 else f.loop_stack[-1]
+                f.ip = start_ip
 
-            # -----------------------
-            # Loops
-            # -----------------------
-            elif op == "FOR_LOOP":
-                var_name, end_val, body_code = instr[1], instr[2], instr[3]
-                start_val = f.locals.get(var_name, 0)
-                for i in range(start_val, end_val):
-                    f.locals[var_name] = i
-                    body_vm = VM()
-                    body_vm.globals = self.globals
-                    body_vm.push_frame(CodeObject(body_code, f.consts, name=f"{f.name}.{var_name}"))
-                    body_vm.run()
-
-            # -----------------------
-            # Functions
-            # -----------------------
+            # ---------- functions ----------
             elif op == "MAKE_FUNCTION":
-                name, params, func_code = instr[1], instr[2], instr[3]
-                f.locals[name] = (params, func_code)
+                # MAKE_FUNCTION (name, params, func_code, [optional func_consts])
+                name = instr[1]
+                params = instr[2]
+                func_code = instr[3]
+                func_consts = instr[4] if len(instr) > 4 else f.consts.copy()
+                # store function representation in locals (or globals for top-level)
+                f.locals[name] = (params, func_code, func_consts)
+
             elif op == "CALL_FUNCTION":
-                name, argc = instr[1], instr[2]
+                name = instr[1]
+                argc = instr[2]
                 args = [f.stack.pop() for _ in range(argc)][::-1]
                 func = f.locals.get(name) or self.globals.get(name)
-                if callable(func):
-                    f.stack.append(func(*args))
+                if func is None:
+                    raise RuntimeError(f"NameError: function '{name}' is not defined")
+                # if func is a python callable host binding
+                if callable(func) and not isinstance(func, tuple):
+                    # call host function directly and push return to stack
+                    ret = func(*args)
+                    f.stack.append(ret)
                 else:
-                    params, func_code = func
-                    new_co = CodeObject(func_code, f.consts, name=name)
+                    # user-defined function tuple: (params, func_code, func_consts)
+                    params, func_code, func_consts = func if len(func) == 3 else (func[0], func[1], f.consts)
+                    new_co = CodeObject(func_code, func_consts, name=name)
+                    # push frame for function call; function frames get their own locals
                     self.push_frame(new_co)
                     new_frame = self.current()
+                    # set function arguments as locals
                     for p, a in zip(params, args):
                         new_frame.locals[p] = a
 
-            # -----------------------
-            # Return
-            # -----------------------
             elif op == "RETURN":
+                # optional return value is on stack
                 if f.stack:
                     f.return_value = f.stack.pop()
+                else:
+                    f.return_value = None
                 self.pop_frame()
+
+            elif op == "FOR_LOOP":
+                # (var_name, end_idx, body_code)
+                var_name = instr[1]
+                end_idx = instr[2]
+                body_code = instr[3]
+                end_val = f.consts[end_idx]
+                # Start value should already be in f.locals (compiler stores it prior)
+                start_val = f.locals.get(var_name, 0)
+                # We'll execute the body for each iteration in a child frame
+                for i in range(start_val, end_val):
+                    f.locals[var_name] = i
+                    # run body in a child frame that shares top-level globals (so nested lets persist sensibly)
+                    body_co = CodeObject(body_code, f.consts.copy(), name=f"{f.name}.for")
+                    # child vm reuses same globals
+                    child_vm = VM()
+                    child_vm.globals = self.globals
+                    child_vm.push_frame(body_co)
+                    child_vm.run()
+                # after loop, continue
 
             else:
                 raise RuntimeError(f"Unknown opcode {op}")
@@ -192,7 +252,3 @@ class VM:
     @staticmethod
     def _host_print(v):
         print(v)
-
-    @staticmethod
-    def _host_cls():
-        os.system("cls" if os.name == "nt" else "clear")

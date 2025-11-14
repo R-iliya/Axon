@@ -22,7 +22,6 @@ let x = 5;
 let y = 10;
 print(x + y);
 
-let arr = [1, 2, 3];
 let d = { "a": 1, "b": 2 };
 print(arr[1]);
 print(d["b"]);
