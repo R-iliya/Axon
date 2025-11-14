@@ -13,6 +13,8 @@ TOKEN_SPEC = [
     ('RBRACE',   r'\}'),
     ('SEMICOLON',r';'),
     ('COMMA',    r','),
+    ("LBRACKET", r"\["),
+    ("RBRACKET", r"\]"),
     ('EQ',       r'='),
     ('OP',       r'[+\-*/]'),
     ('SKIP',     r'[ \t]+'),
