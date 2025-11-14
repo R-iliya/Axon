@@ -1,7 +1,7 @@
 try:
     import readline  # Linux/macOS
 except ImportError:
-    import pyreadline3 as readline  # Windows alternative
+    import pyreadline3 as readline  # Windows
 
 from axon.parser import Parser, ParseError
 from axon.compiler import compile_program
@@ -20,8 +20,8 @@ def repl():
                 continue
 
             # ---- parse statements safely ----
+            parser = Parser(code)
             try:
-                parser = Parser(code)
                 statements = parser.parse()
             except ParseError as e:
                 print(f"[!!] Syntax error: {e}")
@@ -46,9 +46,6 @@ def repl():
             break
         except KeyboardInterrupt:
             print("\n[!!] Keyboard interrupt — REPL still alive.")
-            continue
-        except Exception as e:
-            print(f"[!!] Unexpected error: {e}")
             continue
 
 if __name__ == "__main__":

@@ -17,10 +17,40 @@ def capture_run(path):
 def test_hello_example(tmp_path):
     p = tmp_path / "ex.ax"
     p.write_text("""
-let x = 2;
-let y = x * 5;
-print(y);
-print(3 + 4 * 2);
+cls;
+let x = 5;
+let y = 10;
+print(x + y);
+
+let arr = [1, 2, 3];
+let d = { "a": 1, "b": 2 };
+print(arr[1]);
+print(d["b"]);
+
+if x < y {
+    print(100);
+} else {
+    print(200);
+}
+
+while x < 10 {
+    x = x + 1;
+    if x == 7 {
+        break;
+    }
+    continue;
+}
+
+for i = 0 to 3 {
+    print(i);
+}
+
+fn add(a, b) {
+    return a + b;
+}
+
+print(add(2, 3));
+return 42;
 """)
     out = capture_run(str(p))
     # expected: y = 10 and 11 from the second print

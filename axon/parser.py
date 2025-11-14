@@ -331,6 +331,9 @@ class Parser:
                 expr = self.parse_expression(stop_tokens=['SEMICOLON'])
                 self.consume_semicolon()
                 return LetNode(var_name, expr)
+            
+        
+        raise ParseError(f"Unrecognized statement starting with {token.value}")
 
             
     def parse(self):
