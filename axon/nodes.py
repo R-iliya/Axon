@@ -104,10 +104,10 @@ class ClearNode:
         os.system('cls' if os.name == 'nt' else 'clear')
 
 class IfNode:
-    def __init__(self, condition, true_body, false_body=None):
+    def __init__(self, condition, body, else_body=None):
         self.condition = condition
-        self.true_body = true_body
-        self.false_body = false_body
+        self.body = body
+        self.else_body = else_body or []
     def eval(self, context):
         if self.condition.eval(context):
             for stmt in self.true_body:

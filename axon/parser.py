@@ -243,7 +243,6 @@ class Parser:
             self.consume_semicolon()
             return BooleanNode(False)
 
-        # --- bare assignment x = 5; ---
         elif token.type == 'IDENT':
             next_token = self.peek_next()
             if next_token and next_token.type == 'EQ':
@@ -253,6 +252,30 @@ class Parser:
                 expr = self.parse_expression(stop_tokens=['SEMICOLON'])
                 self.consume_semicolon()
                 return LetNode(var_name, expr)
+        
+        elif token.value == 'if':
+            self.advance()
+            # parse condition in parentheses or until '{'
+            condition = self.parse_expression(stop_tokens=['LBRACE'])
+            self.expect('LBRACE')
+            body = []
+            while self.current_token() and self.current_token().type != 'RBRACE':
+                stmt = self.parse_statement()
+                if stmt:
+                    body.append(stmt)
+            self.expect('RBRACE')
+            # optional else
+            else_body = []
+            next_token = self.current_token()
+            if next_token and next_token.value == 'else':
+                self.advance()
+                self.expect('LBRACE')
+                while self.current_token() and self.current_token().type != 'RBRACE':
+                    stmt = self.parse_statement()
+                    if stmt:
+                        else_body.append(stmt)
+                self.expect('RBRACE')
+            return IfNode(condition, body, else_body)
 
         # --- top-level expressions ---
         expr = self.parse_expression(stop_tokens=['SEMICOLON'])
