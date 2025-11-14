@@ -51,7 +51,7 @@ class Parser:
         stop_tokens = stop_tokens or []
         left = self.parse_comparison(stop_tokens)
         token = self.current_token()
-        while token and token.type not in stop_tokens and token.type == 'OP' and token.value == 'and':
+        while token and token.type == 'OP' and token.value == 'and':
             op = token.value
             self.advance()
             right = self.parse_comparison(stop_tokens)
@@ -63,7 +63,7 @@ class Parser:
         stop_tokens = stop_tokens or []
         left = self.parse_term(stop_tokens)
         token = self.current_token()
-        while token and token.type not in stop_tokens and token.type == 'OP' and token.value in ('==', '!=', '<', '>', '<=', '>='):
+        while token and token.type == 'OP' and token.value in ('==', '!=', '<', '>', '<=', '>='):
             op = token.value
             self.advance()
             right = self.parse_term(stop_tokens)
@@ -75,7 +75,7 @@ class Parser:
         stop_tokens = stop_tokens or []
         left = self.parse_factor_term(stop_tokens)  # <--- changed here
         token = self.current_token()
-        while token and token.type not in stop_tokens and token.type == 'OP' and token.value in ('+', '-'):
+        while token and token.type == 'OP' and token.value in ('+', '-'):
             op = token.value
             self.advance()
             right = self.parse_factor_term(stop_tokens)  # <--- changed here
@@ -88,7 +88,7 @@ class Parser:
         stop_tokens = stop_tokens or []
         left = self.parse_factor(stop_tokens)
         token = self.current_token()
-        while token and token.type not in stop_tokens and token.type == 'OP' and token.value in ('*', '/', '%'):
+        while token and token.type == 'OP' and token.value in ('*', '/', '%'):
             op = token.value
             self.advance()
             right = self.parse_factor(stop_tokens)
@@ -114,9 +114,9 @@ class Parser:
             self.advance()
             return StringNode(token.value)
         elif token.type == 'IDENT':
-            if token.value in ('true', 'false'):
+            if token.value in ('True', 'False'):
                 self.advance()
-                return BooleanNode(token.value == 'true')
+                return BooleanNode(token.value == 'True')
 
             self.advance()
             next_token = self.current_token()
