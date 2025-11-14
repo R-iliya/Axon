@@ -203,6 +203,10 @@ class VM:
                     f.return_value = f.stack.pop()
                 self.pop_frame()
 
+            elif op == "POP_TOP":
+                if f.stack:
+                    f.stack.pop()
+
             else:
                 raise RuntimeError(f"Unknown opcode {op}")
 
