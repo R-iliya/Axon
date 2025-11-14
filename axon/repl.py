@@ -1,8 +1,4 @@
-try:
-    import readline  # Linux/macOS
-except ImportError:
-    import pyreadline3 as readline  # Windows
-
+# axon/repl.py
 from axon.parser import Parser, ParseError
 from axon.compiler import compile_program
 from axon.vm import VM
@@ -19,7 +15,6 @@ def repl():
             if not code.strip():
                 continue
 
-            # ---- parse statements safely ----
             parser = Parser(code)
             try:
                 statements = parser.parse()
@@ -27,14 +22,12 @@ def repl():
                 print(f"[!!] Syntax error: {e}")
                 continue
 
-            # ---- compile program safely ----
             try:
                 co = compile_program(statements)
             except Exception as e:
                 print(f"[!!] Compile error: {e}")
                 continue
 
-            # ---- run in VM safely ----
             try:
                 vm.push_frame(co)
                 vm.run()
