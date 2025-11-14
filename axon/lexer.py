@@ -1,8 +1,11 @@
 # axon/lexer.py
 import re
 from dataclasses import dataclass
-from typing import List, Iterator, Tuple, Optional
+from typing import List
 
+# ---------------------
+# Token specifications
+# ---------------------
 TOKEN_SPEC = [
 
     # --- Literals ---
@@ -22,33 +25,17 @@ TOKEN_SPEC = [
     ('TRUE',        r'\btrue\b'),
     ('FALSE',       r'\bfalse\b'),
     ('CLEAR',       r'\bcls\b'),
-    ('AND',         r'\band\b'),
-    ('OR',          r'\bor\b'),
-    ('NOT',         r'\bnot\b'),
 
-    # --- Multi-char operators ---
-    ('EQEQ',        r'=='),
-    ('NEQ',         r'!='),
-    ('LE',          r'<='),
-    ('GE',          r'>='),
-
-    # --- Single-char operators ---
-    ('EQ',          r'='),
-    ('LT',          r'<'),
-    ('GT',          r'>'),
-    ('PLUS',        r'\+'),
-    ('MINUS',       r'-'),
-    ('STAR',        r'\*'),
-    ('SLASH',       r'/'),
-    ('PERCENT',     r'%'),
+    # --- Operators (all as generic OP) ---
+    ('OP',          r'==|!=|<=|>=|<|>|\+|-|\*|/|%|=|and\b|or\b|not\b'),
 
     # --- Delimiters ---
     ('LPAREN',      r'\('),
     ('RPAREN',      r'\)'),
     ('LBRACE',      r'\{'),
     ('RBRACE',      r'\}'),
-    ("LBRACKET",    r'\['),
-    ("RBRACKET",    r'\]'),
+    ('LBRACKET',    r'\['),
+    ('RBRACKET',    r'\]'),
     ('COMMA',       r','),
     ('SEMICOLON',   r';'),
 
@@ -60,7 +47,6 @@ TOKEN_SPEC = [
     ('NEWLINE',     r'\n'),
     ('MISMATCH',    r'.'),
 ]
-
 
 TOKEN_RE = re.compile('|'.join(f'(?P<{name}>{pattern})' for name, pattern in TOKEN_SPEC))
 
@@ -85,11 +71,10 @@ def tokenize(code):
             value = float(value) if '.' in value else int(value)
         elif kind == 'STRING':
             value = bytes(value[1:-1], "utf-8").decode("unicode_escape")
-        elif kind == 'NEWLINE':
-            line_num += 1
-            line_start = mo.end()
-            continue
-        elif kind == 'SKIP':
+        elif kind in ('NEWLINE', 'SKIP'):
+            if kind == 'NEWLINE':
+                line_num += 1
+                line_start = mo.end()
             continue
         elif kind == 'MISMATCH':
             raise SyntaxError(f'Unexpected {value!r} at line {line_num}')
