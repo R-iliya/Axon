@@ -164,7 +164,7 @@ class VM:
 
             elif op == "JUMP_IF_FALSE":
                 offset = instr[1]
-                cond = f.stack.pop()
+                cond = f.stack.pop()   # always pop the condition
                 if not cond:
                     f.ip += offset - 1
 

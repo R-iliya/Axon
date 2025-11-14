@@ -39,25 +39,22 @@ def compile_program(prog) -> CodeObject:
             # compile condition
             code.extend(compile_expr(stmt.condition, consts))
 
-            # compile true/false branches
+            # compile true/false
             true_code = compile_program(stmt.body).code
             false_code = compile_program(stmt.else_body).code if stmt.else_body else []
 
-            # jump to else or after if false
+            # jump over true if false
             code.append(("JUMP_IF_FALSE", len(true_code) + (1 if false_code else 0)))
 
             # true branch
             code.extend(true_code)
 
             if false_code:
-                # jump past false branch after true executes
                 code.append(("JUMP", len(false_code)))
                 code.extend(false_code)
 
-            # remove any leftover values from branches to normalize stack
-            code.append(("POP_TOP",))  # <--- add this opcode to remove branch results
-            code.append(("CONST", add_const(consts, None)))  # REPL expects something
-
+            # normalize stack for REPL
+            code.append(("CONST", add_const(consts, None)))
 
         # while loop
         elif isinstance(stmt, WhileNode):
