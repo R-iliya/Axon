@@ -28,6 +28,7 @@ def compile_program(prog) -> CodeObject:
         elif isinstance(stmt, PrintNode):
             code.extend(compile_expr(stmt.expr, consts))
             code.append(("PRINT",))
+            code.append(("CONST", add_const(consts, None)))  # push None after printing
 
         # clear screen
         elif isinstance(stmt, ClearNode):
@@ -35,14 +36,26 @@ def compile_program(prog) -> CodeObject:
 
         # if/else
         elif isinstance(stmt, IfNode):
+            # compile condition
             code.extend(compile_expr(stmt.condition, consts))
+
+            # compile true and false branches
             true_code = compile_program(stmt.body).code
             false_code = compile_program(stmt.else_body).code if stmt.else_body else []
-            code.append(("JUMP_IF_FALSE", len(true_code) + 1))
+
+            # jump over true body if condition is false
+            code.append(("JUMP_IF_FALSE", len(true_code) + (1 if false_code else 0)))
+
+            # insert true branch
             code.extend(true_code)
+
             if false_code:
+                # jump past false branch after true executes
                 code.append(("JUMP", len(false_code)))
                 code.extend(false_code)
+
+            # normalize stack: push None so REPL doesn’t print leftover values
+            code.append(("CONST", add_const(consts, None)))
 
         # while loop
         elif isinstance(stmt, WhileNode):
