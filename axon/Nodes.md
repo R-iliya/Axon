@@ -58,7 +58,7 @@ They perform actions or control how the program flows.
 
 * **ClearNode**
 
-  * `clear();` → clears terminal screen.
+  * `cls;` → clears terminal screen.
 
 * **IfNode**
 
