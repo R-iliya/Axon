@@ -90,7 +90,6 @@ class PrintNode:
         self.expr = expr
     def eval(self, context):
         print(self.expr.eval(context))
-        return None
 
 class LetNode:
     def __init__(self, name, expr):
@@ -98,13 +97,11 @@ class LetNode:
         self.expr = expr
     def eval(self, context):
         context[self.name] = self.expr.eval(context)
-        return None
 
 class ClearNode:
     @staticmethod
     def eval(context):
         os.system('cls' if os.name == 'nt' else 'clear')
-        return None
 
 class IfNode:
     def __init__(self, condition, body, else_body=None):
@@ -134,7 +131,6 @@ class WhileNode:
                     break
                 except ContinueException:
                     continue
-        return None
 
 class ForNode:
     def __init__(self, var_name, start_expr, end_expr, body):
@@ -154,7 +150,6 @@ class ForNode:
                     break
                 except ContinueException:
                     continue
-        return None
 
 class BreakNode:
     @staticmethod
@@ -179,7 +174,6 @@ class FunctionNode:
         self.body = body
     def eval(self, context):
         context[self.name] = self
-        return None
 
 class CallNode:
     def __init__(self, name, args):
