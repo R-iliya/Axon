@@ -22,8 +22,7 @@ let x = 5;
 let y = 10;
 print(x + y);
 
-let d = { "a": 1, "b": 2 };
-print(arr[1]);
+let arr = { "a": 1, "b": 2 };
 """)
     out = capture_run(str(p))
     # expected: y = 10 and 11 from the second print
