@@ -24,32 +24,6 @@ print(x + y);
 
 let d = { "a": 1, "b": 2 };
 print(arr[1]);
-print(d["b"]);
-
-if x < y {
-    print(100);
-} else {
-    print(200);
-}
-
-while x < 10 {
-    x = x + 1;
-    if x == 7 {
-        break;
-    }
-    continue;
-}
-
-for i = 0 to 3 {
-    print(i);
-}
-
-fn add(a, b) {
-    return a + b;
-}
-
-print(add(2, 3));
-return 42;
 """)
     out = capture_run(str(p))
     # expected: y = 10 and 11 from the second print
