@@ -207,7 +207,7 @@ class Parser:
         elif token.value == 'let':
             self.advance()
             var_name = self.expect('IDENT').value
-            self.expect('EQ')
+            self.expect_op('=')
             expr = self.parse_expression(stop_tokens=['SEMICOLON'])
             self.consume_semicolon()
             return LetNode(var_name, expr)
@@ -280,6 +280,13 @@ class Parser:
         if next_pos < len(self.tokens):
             return self.tokens[next_pos]
         return None
+    
+    def expect_op(self, op_value):
+        token = self.current_token()
+        if not token or not (token.type == 'OP' and token.value == op_value):
+            raise ParseError(f"Expected operator '{op_value}', got {token}")
+        self.advance()
+        return token
     
 def parse_text(code):
     """
