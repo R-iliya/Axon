@@ -17,10 +17,10 @@ def capture_run(path):
 def test_hello_example(tmp_path):
     p = tmp_path / "ex.ax"
     p.write_text("""
-cls;
 let x = 5;
 let y = 10;
-print(x + y);
+print(y);
+print(x + 6);
 """)
     out = capture_run(str(p))
     # expected: y = 10 and 11 from the second print
