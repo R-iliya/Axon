@@ -104,15 +104,24 @@ class ClearNode:
         os.system('cls' if os.name == 'nt' else 'clear')
 
 class IfNode:
-    def __init__(self, condition, body, else_body=None):
-        self.condition = condition
-        self.body = body or []
-        self.else_body = else_body  # can be None or another IfNode or list
+    def __init__(self, branches, else_body=None):
+        """
+        branches: list of tuples [(condition_node, body_nodes)]
+        else_body: list of statements
+        """
+        self.branches = branches
+        self.else_body = else_body or []
 
-class ElifNode:
-    def __init__(self, condition, body):
-        self.condition = condition
-        self.body = body or []
+    def eval(self, context):
+        for cond, body in self.branches:
+            if cond.eval(context):
+                for stmt in body:
+                    stmt.eval(context)
+                return None
+        # else
+        for stmt in self.else_body:
+            stmt.eval(context)
+        return None
 
 class WhileNode:
     def __init__(self, condition, body):

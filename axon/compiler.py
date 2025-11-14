@@ -35,36 +35,35 @@ def compile_program(prog) -> CodeObject:
             code.append(("CLEAR",))
 
         elif isinstance(stmt, IfNode):
-            # 1 Compile condition
-            code.extend(compile_expr(stmt.condition, consts))
-            code.append(("JUMP_IF_FALSE", 0))  # placeholder offset
-            jump_if_false_idx = len(code) - 1
+            end_jumps = []
+            for cond, body in stmt.branches:
+                # compile condition
+                code.extend(compile_expr(cond, consts))
+                # jump over body if false
+                jump_if_false_idx = len(code)
+                code.append(("JUMP_IF_FALSE", 0))  # placeholder
 
-            # 2 Compile true body
-            true_code = compile_program(stmt.body).code
-            code.extend(true_code)
+                # compile body
+                body_code = compile_program(body).code
+                code.extend(body_code)
+                # jump over remaining branches
+                jump_idx = len(code)
+                code.append(("JUMP", 0))  # placeholder
+                end_jumps.append(jump_idx)
 
-            # 3 Jump past false/elif/else body
-            code.append(("JUMP", 0))  # placeholder
-            jump_past_false_idx = len(code) - 1
+                # backpatch the JUMP_IF_FALSE
+                code[jump_if_false_idx] = ("JUMP_IF_FALSE", len(body_code) + 1)
 
-            # 4 Compile false / elif / else
-            false_code = []
+            # compile else body
             if stmt.else_body:
-                if isinstance(stmt.else_body, IfNode):  # elif chain
-                    false_code = compile_program([stmt.else_body]).code
-                else:  # normal else
-                    false_code = compile_program(stmt.else_body).code
-            # patch JUMP_IF_FALSE offset
-            code[jump_if_false_idx] = ("JUMP_IF_FALSE", len(true_code) + 1)
+                else_code = compile_program(stmt.else_body).code
+                code.extend(else_code)
 
-            # insert false branch
-            code.extend(false_code)
-            # patch JUMP over false branch
-            code[jump_past_false_idx] = ("JUMP", len(false_code))
+            # backpatch jumps after bodies to skip remaining code
+            after_if_idx = len(code)
+            for idx in end_jumps:
+                code[idx] = ("JUMP", after_if_idx - idx)
 
-            # 5 Push None to normalize REPL
-            code.append(("CONST", add_const(consts, None)))
 
         # while loop
         elif isinstance(stmt, WhileNode):

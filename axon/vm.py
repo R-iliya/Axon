@@ -164,9 +164,9 @@ class VM:
 
             elif op == "JUMP_IF_FALSE":
                 offset = instr[1]
-                cond = f.stack.pop()  # consume condition
+                cond = f.stack.pop() if f.stack else False
                 if not cond:
-                    f.ip += offset
+                    f.ip += offset - 1
 
             # ----- LOOP FLOW -----
             elif op == "BREAK":
