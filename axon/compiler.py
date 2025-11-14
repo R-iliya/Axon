@@ -36,8 +36,8 @@ def compile_program(prog) -> CodeObject:
         # if/else
         elif isinstance(stmt, IfNode):
             code.extend(compile_expr(stmt.condition, consts))
-            true_code = compile_program(stmt.true_body).code
-            false_code = compile_program(stmt.false_body).code if stmt.false_body else []
+            true_code = compile_program(stmt.body).code
+            false_code = compile_program(stmt.else_body).code if stmt.else_body else []
             code.append(("JUMP_IF_FALSE", len(true_code) + 1))
             code.extend(true_code)
             if false_code:

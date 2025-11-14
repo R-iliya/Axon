@@ -110,10 +110,10 @@ class IfNode:
         self.else_body = else_body or []
     def eval(self, context):
         if self.condition.eval(context):
-            for stmt in self.true_body:
+            for stmt in self.body:
                 stmt.eval(context)
-        elif self.false_body:
-            for stmt in self.false_body:
+        elif self.else_body:
+            for stmt in self.else_body:
                 stmt.eval(context)
 
 class WhileNode:

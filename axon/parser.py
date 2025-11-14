@@ -255,16 +255,18 @@ class Parser:
         
         elif token.value == 'if':
             self.advance()
-            # parse condition in parentheses or until '{'
             condition = self.parse_expression(stop_tokens=['LBRACE'])
             self.expect('LBRACE')
+
+            # parse the body inside braces
             body = []
             while self.current_token() and self.current_token().type != 'RBRACE':
                 stmt = self.parse_statement()
-                if stmt:
+                if stmt is not None:
                     body.append(stmt)
             self.expect('RBRACE')
-            # optional else
+
+            # parse optional else
             else_body = []
             next_token = self.current_token()
             if next_token and next_token.value == 'else':
@@ -272,9 +274,10 @@ class Parser:
                 self.expect('LBRACE')
                 while self.current_token() and self.current_token().type != 'RBRACE':
                     stmt = self.parse_statement()
-                    if stmt:
+                    if stmt is not None:
                         else_body.append(stmt)
                 self.expect('RBRACE')
+
             return IfNode(condition, body, else_body)
 
         # --- top-level expressions ---
