@@ -16,7 +16,7 @@ These evaluate to values — numbers, strings, booleans, lists, etc.
 
 * **BooleanNode**
 
-  * `let flag = true;` → stores `True`.
+  * `let flag = True;` → stores `True`.
 
 * **VariableNode**
 
