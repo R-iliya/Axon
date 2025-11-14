@@ -73,22 +73,21 @@ class Parser:
 
     def parse_term(self, stop_tokens=None):
         stop_tokens = stop_tokens or []
-        left = self.parse_factor_term(stop_tokens)  # <--- changed here
+        left = self.parse_factor_term(stop_tokens)
         token = self.current_token()
-        while token and token.type == 'OP' and token.value in ('+', '-'):
+        while token and token.type not in stop_tokens and token.type == 'OP' and token.value in ('+', '-'):
             op = token.value
             self.advance()
-            right = self.parse_factor_term(stop_tokens)  # <--- changed here
+            right = self.parse_factor_term(stop_tokens)
             left = BinOpNode(left, op, right)
             token = self.current_token()
         return left
 
     def parse_factor_term(self, stop_tokens=None):
-        """Handles *, /, % operators with correct precedence"""
         stop_tokens = stop_tokens or []
         left = self.parse_factor(stop_tokens)
         token = self.current_token()
-        while token and token.type == 'OP' and token.value in ('*', '/', '%'):
+        while token and token.type not in stop_tokens and token.type == 'OP' and token.value in ('*', '/', '%'):
             op = token.value
             self.advance()
             right = self.parse_factor(stop_tokens)
@@ -275,6 +274,12 @@ class Parser:
             raise ParseError(f"Expected token type {token_type}, got {token}")
         self.advance()
         return token
+    
+    def peek_next(self):
+        next_pos = self.pos + 1
+        if next_pos < len(self.tokens):
+            return self.tokens[next_pos]
+        return None
     
 def parse_text(code):
     """
