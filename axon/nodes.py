@@ -1,208 +1,265 @@
 # axon/nodes.py
+"""
+AST node definitions for the Axon language.
 
-import os
+All nodes are immutable dataclasses — pure data, zero behaviour.
+Execution is handled by a separate tree-walk interpreter or bytecode compiler
+that walks this tree.
 
-# -----------------------------
+Node hierarchy
+──────────────
+Expr (produce a value)
+  NumberLit      – 42 | 3.14
+  StringLit      – "hello"
+  BoolLit        – true | false
+  Var            – x
+  BinOp          – a + b,  x == y,  p and q  …
+  UnaryOp        – -x | not y
+  ListLit        – [1, 2, 3]
+  DictLit        – {"a": 1, "b": 2}
+  Index          – collection[idx]
+  Call           – foo(1, "bar")
+
+Stmt (perform an action, produce no value)
+  Let            – let x = expr;          (declaration OR re-assignment)
+  Assign         – x = expr;              (bare re-assignment, no 'let')
+  Print          – print(expr);
+  Clear          – cls;
+  If             – if … { } elif … { } else { }
+  While          – while cond { }
+  For            – for i = start to end { }
+  Break          – break;
+  Continue       – continue;
+  Return         – return expr;
+  FnDef          – fn name(params) { body }
+  ExprStmt       – a standalone expression used as a statement
+"""
+
+from __future__ import annotations
+from dataclasses import dataclass, field
+from typing import List, Optional, Tuple
+
+
+# ---------------------------------------------------------------------------
+# Base
+# ---------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class Node:
+    """Base class for every AST node."""
+    line: int
+    col:  int
+
+
+# ---------------------------------------------------------------------------
 # Expressions
-# -----------------------------
-class NumberNode:
-    def __init__(self, value):
-        self.value = value
-    def eval(self, context):
-        return self.value
+# ---------------------------------------------------------------------------
 
-class StringNode:
-    def __init__(self, value):
-        self.value = value
-    def eval(self, context):
-        return self.value
+@dataclass(frozen=True)
+class NumberLit(Node):
+    """Integer or float literal.  e.g. 42  |  3.14"""
+    value: int | float
 
-class BooleanNode:
-    def __init__(self, value):
-        self.value = value
-    def eval(self, context):
-        return self.value
 
-class VariableNode:
-    def __init__(self, name):
-        self.name = name
-    def eval(self, context):
-        return context.get(self.name, 0)
+@dataclass(frozen=True)
+class StringLit(Node):
+    """String literal (already cooked by the lexer).  e.g. "hello\\nworld" """
+    value: str
 
-class BinOpNode:
-    def __init__(self, left, op, right):
-        self.left = left
-        self.op = op
-        self.right = right
-    def eval(self, context):
-        left = self.left.eval(context)
-        right = self.right.eval(context)
-        if self.op == '+': return left + right
-        if self.op == '-': return left - right
-        if self.op == '*': return left * right
-        if self.op == '/': return left / right
-        if self.op == '==': return left == right
-        if self.op == '!=': return left != right
-        if self.op == '<': return left < right
-        if self.op == '>': return left > right
-        if self.op == '<=': return left <= right
-        if self.op == '>=': return left >= right
-        if self.op == 'and': return left and right
-        if self.op == 'or': return left or right
-        raise ValueError(f"Unknown operator {self.op}")
 
-class UnaryOpNode:
-    def __init__(self, op, expr):
-        self.op = op
-        self.expr = expr
-    def eval(self, context):
-        val = self.expr.eval(context)
-        if self.op == '-': return -val
-        if self.op == 'not': return not val
-        raise ValueError(f"Unknown unary operator {self.op}")
+@dataclass(frozen=True)
+class BoolLit(Node):
+    """Boolean literal.  true | false"""
+    value: bool
 
-class ListNode:
-    def __init__(self, elements):
-        self.elements = elements
-    def eval(self, context):
-        return [e.eval(context) for e in self.elements]
 
-class IndexNode:
-    def __init__(self, collection, index):
-        self.collection = collection
-        self.index = index
-    def eval(self, context):
-        coll = self.collection.eval(context)
-        idx = self.index.eval(context)
-        return coll[idx]
+@dataclass(frozen=True)
+class Var(Node):
+    """Variable reference.  e.g. x"""
+    name: str
 
-class DictNode:
-    def __init__(self, entries):
-        self.entries = entries  # list of (key, value) tuples
-    def eval(self, context):
-        return {k.eval(context): v.eval(context) for k, v in self.entries}
 
-# -----------------------------
+@dataclass(frozen=True)
+class BinOp(Node):
+    """
+    Binary operation.
+
+    op is one of:
+      arithmetic : + - * / %
+      comparison : == != < > <= >=
+      logical    : and or
+    """
+    left:  Node
+    op:    str
+    right: Node
+
+
+@dataclass(frozen=True)
+class UnaryOp(Node):
+    """
+    Unary operation.
+
+    op is one of: -  not
+    """
+    op:   str
+    expr: Node
+
+
+@dataclass(frozen=True)
+class ListLit(Node):
+    """List literal.  e.g. [1, 2, 3]"""
+    elements: Tuple[Node, ...]
+
+
+@dataclass(frozen=True)
+class DictLit(Node):
+    """
+    Dict literal.  e.g. {"key": value, ...}
+    entries is a tuple of (key_node, value_node) pairs.
+    """
+    entries: Tuple[Tuple[Node, Node], ...]
+
+
+@dataclass(frozen=True)
+class Index(Node):
+    """
+    Subscript / index access.  e.g. arr[0]  |  d["key"]
+    Supports chained indexing: arr[0][1] becomes Index(Index(arr, 0), 1).
+    """
+    collection: Node
+    index:      Node
+
+
+@dataclass(frozen=True)
+class Call(Node):
+    """
+    Function call.  e.g. foo(1, "bar")
+    args is a tuple of expression nodes.
+    """
+    name: str
+    args: Tuple[Node, ...]
+
+
+# ---------------------------------------------------------------------------
 # Statements
-# -----------------------------
-class PrintNode:
-    def __init__(self, expr):
-        self.expr = expr
-    def eval(self, context):
-        print(self.expr.eval(context))
+# ---------------------------------------------------------------------------
 
-class LetNode:
-    def __init__(self, name, expr):
-        self.name = name
-        self.expr = expr
-    def eval(self, context):
-        context[self.name] = self.expr.eval(context)
+@dataclass(frozen=True)
+class Let(Node):
+    """
+    Variable declaration (and initialisation).  e.g. let x = 5;
+    Creates the variable in the current scope if it doesn't exist.
+    """
+    name: str
+    expr: Node
 
-class ClearNode:
-    @staticmethod
-    def eval(context):
-        os.system('cls' if os.name == 'nt' else 'clear')
 
-class IfNode:
-    def __init__(self, branches, else_body=None):
-        """
-        branches: list of tuples [(condition_node, body_nodes)]
-        else_body: list of statements
-        """
-        self.branches = branches
-        self.else_body = else_body or []
+@dataclass(frozen=True)
+class Assign(Node):
+    """
+    Bare re-assignment (no 'let').  e.g. x = 10;
+    The variable must already exist in an enclosing scope.
+    """
+    name: str
+    expr: Node
 
-    def eval(self, context):
-        for cond, body in self.branches:
-            if cond.eval(context):
-                for stmt in body:
-                    stmt.eval(context)
-                return None
-        # else
-        for stmt in self.else_body:
-            stmt.eval(context)
-        return None
 
-class WhileNode:
-    def __init__(self, condition, body):
-        self.condition = condition
-        self.body = body
-    def eval(self, context):
-        while self.condition.eval(context):
-            for stmt in self.body:
-                try:
-                    stmt.eval(context)
-                except BreakException:
-                    break
-                except ContinueException:
-                    continue
+@dataclass(frozen=True)
+class Print(Node):
+    """Built-in print statement.  e.g. print(expr);"""
+    expr: Node
 
-class ForNode:
-    def __init__(self, var_name, start_expr, end_expr, body):
-        self.var_name = var_name
-        self.start_expr = start_expr
-        self.end_expr = end_expr
-        self.body = body
-    def eval(self, context):
-        start = self.start_expr.eval(context)
-        end = self.end_expr.eval(context)
-        for i in range(start, end):
-            context[self.var_name] = i
-            for stmt in self.body:
-                try:
-                    stmt.eval(context)
-                except BreakException:
-                    break
-                except ContinueException:
-                    continue
 
-class BreakNode:
-    @staticmethod
-    def eval(context):
-        raise BreakException()
+@dataclass(frozen=True)
+class Clear(Node):
+    """Clear the terminal screen.  cls;"""
 
-class ContinueNode:
-    @staticmethod
-    def eval(context):
-        raise ContinueException()
 
-class BreakException(Exception): pass
-class ContinueException(Exception): pass
+@dataclass(frozen=True)
+class If(Node):
+    """
+    if / elif / else chain.
 
-# -----------------------------
-# Functions
-# -----------------------------
-class FunctionNode:
-    def __init__(self, name, params, body):
-        self.name = name
-        self.params = params
-        self.body = body
-    def eval(self, context):
-        context[self.name] = self
+    branches  : one or more (condition, body) pairs.
+                The first pair is the 'if' branch;
+                subsequent pairs are 'elif' branches.
+    else_body : optional list of statements for the final 'else' block.
 
-class CallNode:
-    def __init__(self, name, args):
-        self.name = name
-        self.args = args
-    def eval(self, context):
-        func = context.get(self.name)
-        if not isinstance(func, FunctionNode):
-            # built-ins
-            if self.name == 'len':
-                return len(self.args[0].eval(context))
-            if self.name == 'type':
-                return type(self.args[0].eval(context)).__name__
-            raise ValueError(f"{self.name} is not a function")
-        local_ctx = context.copy()
-        for p, a in zip(func.params, self.args):
-            local_ctx[p] = a.eval(context)
-        result = None
-        for stmt in func.body:
-            result = stmt.eval(local_ctx)
-        return result
+    e.g.
+        if x > 0 {
+            print("pos");
+        } elif x == 0 {
+            print("zero");
+        } else {
+            print("neg");
+        }
+    """
+    branches:  Tuple[Tuple[Node, Tuple[Node, ...]], ...]
+    else_body: Tuple[Node, ...]
 
-class ReturnNode:
-    def __init__(self, expr):
-        self.expr = expr
-    def eval(self, context):
-        return self.expr.eval(context)
+
+@dataclass(frozen=True)
+class While(Node):
+    """
+    While loop.  e.g. while cond { body }
+    """
+    condition: Node
+    body:      Tuple[Node, ...]
+
+
+@dataclass(frozen=True)
+class For(Node):
+    """
+    Counted for loop.  e.g. for i = 0 to 10 { body }
+
+    var_name : loop variable name (created / overwritten each iteration)
+    start    : start expression (inclusive)
+    end      : end expression   (exclusive, like Python range)
+    body     : tuple of statements
+    """
+    var_name: str
+    start:    Node
+    end:      Node
+    body:     Tuple[Node, ...]
+
+
+@dataclass(frozen=True)
+class Break(Node):
+    """break;  — exit the nearest enclosing loop."""
+
+
+@dataclass(frozen=True)
+class Continue(Node):
+    """continue;  — skip to the next iteration of the nearest enclosing loop."""
+
+
+@dataclass(frozen=True)
+class Return(Node):
+    """
+    return expr;  — return a value from a function.
+    expr is None for a bare 'return;' (returns null / None).
+    """
+    expr: Optional[Node]
+
+
+@dataclass(frozen=True)
+class FnDef(Node):
+    """
+    Function definition.  e.g. fn greet(name) { print("hi " + name); }
+
+    name   : function name
+    params : tuple of parameter name strings
+    body   : tuple of statements
+    """
+    name:   str
+    params: Tuple[str, ...]
+    body:   Tuple[Node, ...]
+
+
+@dataclass(frozen=True)
+class ExprStmt(Node):
+    """
+    A bare expression used as a statement (result is discarded).
+    e.g.  greet("Axon");   — a call whose return value isn't captured.
+    """
+    expr: Node
