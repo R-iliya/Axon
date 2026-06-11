@@ -7,7 +7,7 @@ Execution is handled by a separate tree-walk interpreter or bytecode compiler
 that walks this tree.
 
 Node hierarchy
-──────────────
+--------------
 Expr (produce a value)
   NumberLit      – 42 | 3.14
   StringLit      – "hello"

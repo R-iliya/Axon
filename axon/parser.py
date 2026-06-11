@@ -6,7 +6,7 @@ Consumes a flat list of Token objects (from axon.lexer) and produces
 a tuple of AST nodes (from axon.nodes) representing the program.
 
 Grammar (informal)
-──────────────────
+------------------
 program      → stmt* EOF
 
 stmt         → let_stmt

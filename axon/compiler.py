@@ -6,11 +6,11 @@ Walks the AST (axon.nodes) and emits a flat list of instructions
 into a CodeObject, which the VM (axon.vm) can execute.
 
 Instruction format
-──────────────────
+------------------
 Every instruction is a tuple:  (opcode, *operands)
 
 Opcodes
-───────
+-------
   Stack / constants
     LOAD_CONST   idx          push consts[idx]
     LOAD_NAME    name         push value of variable 'name'
@@ -58,7 +58,7 @@ Opcodes
     CLEAR                     clear the terminal
 
 Absolute jump targets
-─────────────────────
+---------------------
 Using absolute indices (not relative offsets) avoids all the off-by-one
 bugs that plagued the original compiler. Backpatching is done with a
 simple list of (instruction_index, field_index) pairs that get filled in
